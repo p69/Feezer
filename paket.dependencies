@@ -7,3 +7,8 @@ nuget Expecto.BenchmarkDotNet
 nuget Expecto.FsCheck
 
 nuget Suave
+
+nuget Fable.Core 1.1.6
+nuget Fable.Import.Node
+nuget Fable.Import.Browser
+nuget Fable.Import.Chokidar
