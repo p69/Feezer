@@ -383,7 +383,7 @@ _Pvt_Extensions
 # Paket dependency manager
 .paket/paket.exe
 paket-files/
-paket.lock
+
 
 # FAKE - F# Make
 .fake/
@@ -391,3 +391,4 @@ paket.lock
 # JetBrains Rider
 .idea/
 *.sln.iml
+src/Client/app/js/
