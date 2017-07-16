@@ -2,3 +2,4 @@ FSharp.Core
 Fable.Core
 Fable.Import.Node
 Fable.Import.Browser
+Fable.Websockets.Client

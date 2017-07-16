@@ -12,3 +12,5 @@ nuget Fable.Core 1.1.6
 nuget Fable.Import.Node
 nuget Fable.Import.Browser
 nuget Fable.Import.Chokidar
+nuget Fable.Websockets.Suave
+nuget Fable.Websockets.Client
