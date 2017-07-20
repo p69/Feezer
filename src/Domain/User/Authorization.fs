@@ -46,7 +46,12 @@ module Authorization =
             member x.Items with get() = permissions
             static member inline (<||>) (x:PermissionComposition, perm:Permission) = x.Compose perm
 
-    let deezerAuthUri = "https://connect.deezer.com/oauth/auth.php?"
+    let deezerBaseAuthUri = "https://connect.deezer.com/oauth/auth.php?"
+
+    let deezerBaseTokenUri = "https://connect.deezer.com/oauth/access_token.php?"
 
     let buildLoginUri appId redirectUri (permissions:PermissionComposition) =
-        deezerAuthUri+"app_id="+appId+"&redirect_uri="+redirectUri+"&perms="+permissions.AsQueryString
+        deezerBaseAuthUri+"app_id="+appId+"&redirect_uri="+redirectUri+"&perms="+permissions.AsQueryString
+
+    let buildTokenUri appId appSecret code =
+        deezerBaseTokenUri+"app_id="+appId+"&secret="+appSecret+"&code="+code

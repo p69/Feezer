@@ -61,6 +61,6 @@ let tests =
     testCase "crete uri for authorization" <| fun _ ->
       let permissions = Authorization.Email <||> Authorization.Basic <||> Authorization.DeleteLibrary <||> Authorization.ManageLibrary <||> Authorization.OfflineAccess
       let uri = Authorization.buildLoginUri appId authCallbackUrl permissions
-      let expectedUri = Authorization.deezerAuthUri+"app_id="+appId+"&redirect_uri="+authCallbackUrl+"&perms="+permissions.AsQueryString
+      let expectedUri = Authorization.deezerBaseAuthUri+"app_id="+appId+"&redirect_uri="+authCallbackUrl+"&perms="+permissions.AsQueryString
       Expect.equal expectedUri uri ""
   ]
