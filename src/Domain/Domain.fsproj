@@ -4,8 +4,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="User\Authorization.fs" />
-    <Compile Include="Protocol\Client.fs" />
-    <Compile Include="Protocol\Server.fs" />
     <Compile Include="State.fs" />
   </ItemGroup>
   <ItemGroup>

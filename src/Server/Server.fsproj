@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\Client\src\Shared\Protocol.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

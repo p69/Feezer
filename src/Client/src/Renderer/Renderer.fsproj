@@ -3,6 +3,8 @@
     <TargetFramework>netstandard1.6</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\..\Fable.Import.Electron.fs" />
+    <Compile Include="..\Shared\Protocol.fs" />
     <Compile Include="Renderer.fs" />
   </ItemGroup>
   <ItemGroup>
