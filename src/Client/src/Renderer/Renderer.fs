@@ -5,7 +5,9 @@ open Fable.Core
 open Fable.Core.JsInterop
 open Feezer.Domain.Protocol
 open Fable.Import
-open Fable.Import.Electron
+module E = Fable.Import.Electron
+
+let mutable private authPopup: E.BrowserWindow option = None
 
 let body = document.getElementById("app")
 body.textContent <- "Hello Feezer!"
@@ -19,12 +21,17 @@ let onMessageReceived (evt:MessageEvent) =
     match msg with
     | Authorization authUrl ->
         let currentWindow = electron.remote.getCurrentWindow()
-        let options = createEmpty<BrowserWindowOptions>
+        let options = createEmpty<E.BrowserWindowOptions>
         options.parent <- Some currentWindow
         options.modal <- Some true
         let authWindow = electron.remote.BrowserWindow.Create(options)
         authWindow.loadURL authUrl
-    | Authorized token ->() //TODO
+        authPopup <- Some authWindow
+    | Authorized token ->
+        body.textContent <- token
+        match authPopup with
+        | Some popUp -> popUp.close()
+        | None -> ()
 
 let ws = WebSocket.Create "ws://localhost:8080/fcon"
 ws.addEventListener_open (fun _ -> !!onSocketConnected(ws))
