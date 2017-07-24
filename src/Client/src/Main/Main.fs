@@ -24,7 +24,7 @@ let createMainWindow () =
     options.webPreferences <- Some webPreferences
 
     let window = electron.BrowserWindow.Create(options)
-
+    
     // Load the index.html of the app.
     window.loadURL("file://" + Node.Globals.__dirname + "/../index.html");
 
@@ -34,7 +34,7 @@ let createMainWindow () =
         window.webContents.reloadIgnoringCache()
     )
     #endif
-
+    
     // Emitted when the window is closed.
     !>window.on("closed", !!(fun () ->
         // Dereference the window object, usually you would store windows
