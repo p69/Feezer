@@ -4,7 +4,7 @@
     <TargetFramework>net462</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="User.fs" />
+    <Compile Include="Cryptography.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
   <ItemGroup>
@@ -12,8 +12,8 @@
     <PackageReference Include="FSharp.NET.Sdk" Version="1.0.*" PrivateAssets="All" />
     <PackageReference Include="Expecto" Version="5.*" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\Domain\Domain.fsproj" />    
+  <ItemGroup>    
+    <ProjectReference Include="..\..\src\Utils\Utils.fsproj" />
   </ItemGroup>
   <ItemGroup>
     <DotNetCliToolReference Include="Microsoft.DotNet.Watcher.Tools" Version="1.0.0" />
