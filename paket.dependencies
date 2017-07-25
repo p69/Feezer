@@ -3,8 +3,7 @@ redirects auto
 nuget FSharp.Core
 
 nuget Expecto
-nuget Expecto.BenchmarkDotNet
-nuget Expecto.FsCheck
+nuget FsCheck
 
 nuget Suave
 nuget Newtonsoft.Json

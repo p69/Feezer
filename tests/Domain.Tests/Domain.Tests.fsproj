@@ -1,7 +1,7 @@
 <Project Sdk="FSharp.NET.Sdk;Microsoft.NET.Sdk">
-  <PropertyGroup>
+  <PropertyGroup>    
+    <TargetFramework>netcoreapp1.1</TargetFramework>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net462</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="User.fs" />
@@ -13,7 +13,8 @@
     <PackageReference Include="Expecto" Version="5.*" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Domain\Domain.fsproj" />    
+    <ProjectReference Include="..\..\src\Domain\Domain.fsproj" />
+    <ProjectReference Include="..\Common\Common.fsproj" />
   </ItemGroup>
   <ItemGroup>
     <DotNetCliToolReference Include="Microsoft.DotNet.Watcher.Tools" Version="1.0.0" />
