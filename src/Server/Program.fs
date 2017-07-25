@@ -21,11 +21,10 @@ module Server =
   let private jsonConverter = Fable.JsonConverter() :> JsonConverter
   let private fromJson<'a> value = JsonConvert.DeserializeObject<'a>(value, [|jsonConverter|])
   let private toJson value = JsonConvert.SerializeObject(value, [|jsonConverter|])
-  let appId = ""
-  let appSecrete = ""
 
   [<EntryPoint>]
   let main argv =
+      let config = Config.get()
       let clients = ResizeArray()
       let sendToAllClients msg =
          let data = toJson <| msg |> UTF8.bytes |> ByteSegment
@@ -50,7 +49,7 @@ module Server =
                     match clientMessage with
                     | Authozrize ->
                         let permissions = Authorization.Email <||> Authorization.Basic <||> Authorization.DeleteLibrary <||> Authorization.ManageLibrary <||> Authorization.OfflineAccess
-                        let uri = Authorization.buildLoginUri appId "http://localhost:8080/auth" permissions
+                        let uri = Authorization.buildLoginUri config.DeezerAppId "http://localhost:8080/auth" permissions
                         let serverMessage = Authorization(uri)
                         toJson serverMessage |> UTF8.bytes |> ByteSegment
 
@@ -85,7 +84,7 @@ module Server =
                 let tokenUrl = match codeParam with
                                 | Some (_,paramValue) ->
                                     match paramValue with
-                                    | Some value -> Some <| Authorization.buildTokenUri appId appSecrete value
+                                    | Some value -> Some <| Authorization.buildTokenUri config.DeezerAppId config.DeezerAppSecret value
                                     | None -> None
                                 | None -> None
                 match tokenUrl with

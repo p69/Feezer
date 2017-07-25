@@ -388,3 +388,5 @@ paket-files/
 .idea/
 *.sln.iml
 src/Client/app/js/
+
+src/Server/pass.phr
