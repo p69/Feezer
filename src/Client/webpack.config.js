@@ -48,7 +48,8 @@ module.exports = {
         test: /\.js$/,
         exclude: [
           /node_modules[\\\/](?!fable-)/,
-          /packages[\\\/](?!fable)/
+          /packages[\\\/](?!fable)/,
+          /src\/Shared/          
           ],
         use: {
           loader: 'babel-loader',

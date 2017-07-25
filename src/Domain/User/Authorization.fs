@@ -1,6 +1,9 @@
 namespace Feezer.Domain.User
 
 module Authorization =
+    open System
+    open Feezer.Domain.Protocol
+
     type Permission =
         | Basic
         | Email
@@ -46,6 +49,11 @@ module Authorization =
             member x.Items with get() = permissions
             static member inline (<||>) (x:PermissionComposition, perm:Permission) = x.Compose perm
 
+    type AuthorizationResult = {
+        access_token:string;
+        expires:int
+    }
+
     let deezerBaseAuthUri = "https://connect.deezer.com/oauth/auth.php?"
 
     let deezerBaseTokenUri = "https://connect.deezer.com/oauth/access_token.php?"
@@ -53,5 +61,17 @@ module Authorization =
     let buildLoginUri appId redirectUri (permissions:PermissionComposition) =
         deezerBaseAuthUri+"app_id="+appId+"&redirect_uri="+redirectUri+"&perms="+permissions.AsQueryString
 
-    let buildTokenUri appId appSecret code =
-        deezerBaseTokenUri+"app_id="+appId+"&secret="+appSecret+"&code="+code
+    let private buildTokenUri appId appSecret code =
+        deezerBaseTokenUri+"app_id="+appId+"&secret="+appSecret+"&code="+code+"&output=json"
+    
+
+    let getAccessToken code appId appSecret (fromJson:string->AuthorizationResult) (downloadString:string->Async<string>) = async {
+        let tokenUrl = buildTokenUri appId appSecret code
+        let! content = downloadString tokenUrl
+        let result = fromJson content
+        let expiration = 
+            match result.expires with
+            | 0 -> Never
+            | seconds -> Date(DateTime.Now.AddSeconds(seconds|>float))
+        return (result.access_token, expiration)
+    }

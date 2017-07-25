@@ -33,8 +33,11 @@ let onMessageReceived (evt:MessageEvent) =
         let authWindow = electron.remote.BrowserWindow.Create(options)
         authWindow.loadURL authUrl
         authPopup <- Some authWindow
-    | Authorized token ->
-        body.textContent <- token
+    | Authorized expiration ->
+        match expiration with
+        | Never -> body.textContent <- "Token expiration: never"
+        | Date date -> body.textContent <- sprintf "Token expiration: %A" date
+        
         match authPopup with
         | Some popUp -> popUp.close()
         | None -> ()

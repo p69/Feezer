@@ -63,40 +63,28 @@ module Server =
 
             | _ -> ()
         }
+      
 
-      let getToken (uri:Uri) =
+      let  downloadString (uri:string) =
         async {
             use client = new HttpClient()
             let! response = client.GetAsync(uri) |> Async.AwaitTask
             return! response.Content.ReadAsStringAsync() |> Async.AwaitTask
         }
 
-      let (|AccessCode|_|) (str:string) =
-        let tokenKey = "access_token="
-        if str.StartsWith(tokenKey)
-        then Some <| str.Substring (tokenKey.Length, str.Length - tokenKey.Length)
-        else None
 
       let handleDeezerAuth: WebPart =
         fun (ctx:HttpContext) ->
             async {
                 let codeParam = ctx.request.queryParamOpt "code"
-                let tokenUrl = match codeParam with
-                                | Some (_,paramValue) ->
-                                    match paramValue with
-                                    | Some value -> Some <| Authorization.buildTokenUri config.DeezerAppId config.DeezerAppSecret value
-                                    | None -> None
-                                | None -> None
-                match tokenUrl with
-                    | Some uri ->
-                        async {
-                            let! str = getToken(Uri(uri, UriKind.Absolute))
-                            match str with
-                            | AccessCode token -> sendToAllClients<|Authorized token
-                            | _ -> ()
-                        } |> Async.Ignore |> Async.Start
-                    | None -> ()
-
+                match codeParam with
+                 | Some (_,paramValue) ->
+                       match paramValue with
+                        | Some code -> 
+                            let! (token, expiration) = downloadString |> Authorization.getAccessToken code config.DeezerAppId config.DeezerAppSecret fromJson<Authorization.AuthorizationResult>
+                            sendToAllClients<|Authorized(expiration)
+                        | None -> ()
+                 | None -> ()
                 return! OK "" ctx
             }
 

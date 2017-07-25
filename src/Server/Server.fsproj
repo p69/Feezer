@@ -5,8 +5,7 @@
     <TargetFramework>netcoreapp1.1</TargetFramework>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Compile Include="..\Client\src\Shared\Protocol.fs" />
+  <ItemGroup>    
     <Compile Include="Config.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
@@ -18,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Utils\Utils.fsproj" />
+    <ProjectReference Include="..\Client\src\Shared\Shared.fsproj" />
     <ProjectReference Include="..\Domain\Domain.fsproj" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
