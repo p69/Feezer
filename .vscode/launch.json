@@ -13,6 +13,28 @@
             "console": "externalTerminal"
         },
         {
+            "name": "Debug Utils.Tests",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceRoot}/tests/Utils.Tests/bin/Debug/netcoreapp1.1/Utils.Tests.dll",
+            "args": [],
+            "cwd": "${workspaceRoot}",
+            "stopAtEntry": false,
+            "console": "externalTerminal"
+        },
+                {
+            "name": "Debug Domain.Tests",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceRoot}/tests/Domain.Tests/bin/Debug/netcoreapp1.1/Domain.Tests.dll",
+            "args": [],
+            "cwd": "${workspaceRoot}",
+            "stopAtEntry": false,
+            "console": "externalTerminal"
+        },
+        {
             "name": ".NET Core Attach",
             "type": "coreclr",
             "request": "attach",
