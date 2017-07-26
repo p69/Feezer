@@ -63,15 +63,15 @@ module Authorization =
 
     let private buildTokenUri appId appSecret code =
         deezerBaseTokenUri+"app_id="+appId+"&secret="+appSecret+"&code="+code+"&output=json"
-    
 
-    let getAccessToken code appId appSecret (fromJson:string->AuthorizationResult) (downloadString:string->Async<string>) = async {
+
+    let getAccessToken code appId appSecret (fromJson:string->AuthorizationResult) (getCurrentDate:unit->DateTime) (downloadString:string->Async<string>) = async {
         let tokenUrl = buildTokenUri appId appSecret code
         let! content = downloadString tokenUrl
         let result = fromJson content
-        let expiration = 
+        let expiration =
             match result.expires with
             | 0 -> Never
-            | seconds -> Date(DateTime.Now.AddSeconds(seconds|>float))
+            | seconds -> Date(getCurrentDate().AddSeconds(seconds|>float))
         return (result.access_token, expiration)
     }
