@@ -2,3 +2,5 @@ FSharp.Core
 Suave
 Newtonsoft.Json
 Fable.JsonConverter
+Proto.Actor
+FSharp.Control.FusionTasks.FS41

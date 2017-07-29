@@ -1,12 +1,14 @@
 source https://www.nuget.org/api/v2
 redirects auto
 nuget FSharp.Core
+nuget FSharp.Control.FusionTasks.FS41
 
 nuget Expecto
 nuget FsCheck
 
 nuget Suave
 nuget Newtonsoft.Json
+nuget Proto.Actor
 
 nuget Fable.Core
 nuget Fable.Import.Node

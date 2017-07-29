@@ -5,8 +5,9 @@
     <TargetFramework>netcoreapp1.1</TargetFramework>
   </PropertyGroup>
 
-  <ItemGroup>    
+  <ItemGroup>
     <Compile Include="Config.fs" />
+    <Compile Include="ActorModel\FSharpApi.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
