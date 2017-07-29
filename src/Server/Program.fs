@@ -63,7 +63,7 @@ module Server =
 
             | _ -> ()
         }
-      
+
 
       let  downloadString (uri:string) =
         async {
@@ -80,8 +80,12 @@ module Server =
                 match codeParam with
                  | Some (_,paramValue) ->
                        match paramValue with
-                        | Some code -> 
-                            let! (token, expiration) = downloadString |> Authorization.getAccessToken code config.DeezerAppId config.DeezerAppSecret fromJson<Authorization.AuthorizationResult>
+                        | Some code ->
+                            let getAccessTokenWithParams = Authorization.getAccessToken code config.DeezerAppId config.DeezerAppSecret
+                            let getAccessTokenWithJsonParse = getAccessTokenWithParams fromJson<Authorization.AuthorizationResult>
+                            let getAccessTokenWothSystemDateTime = getAccessTokenWithJsonParse (fun()->DateTime.Now)
+
+                            let! (token, expiration) = downloadString |> getAccessTokenWothSystemDateTime
                             sendToAllClients<|Authorized(expiration)
                         | None -> ()
                  | None -> ()

@@ -1,5 +1,5 @@
 <Project Sdk="FSharp.NET.Sdk;Microsoft.NET.Sdk">
-  <PropertyGroup>    
+  <PropertyGroup>
     <TargetFramework>netcoreapp1.1</TargetFramework>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
@@ -13,6 +13,7 @@
     <PackageReference Include="Expecto" Version="5.*" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Client\src\Shared\Shared.fsproj" />
     <ProjectReference Include="..\..\src\Domain\Domain.fsproj" />
     <ProjectReference Include="..\Common\Common.fsproj" />
   </ItemGroup>
