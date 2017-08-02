@@ -54,24 +54,20 @@ module ActorApi =
 
     type PropsConfig = {
       OnReceive:MessagesHandler
-      OnReceiveBehavior:MessageHandlerWithBahavior option
-      Mailbox:IMailbox option
+      Mailbox:(unit->IMailbox) option
       Dispatcher:IDispatcher option
       SupervisorStrategy:ISupervisorStrategy option
       ReceiveMiddlewares:list<MessagesHandler>
       SendMiddleware:list<SendInterceptor>
-      Spawner:Spawner option
       Behaviors:(BehaviorSwitcher->list<MessagesHandler>) option
     }
     let private zeroConfig = {
       OnReceive=ignore
-      OnReceiveBehavior=None
       Mailbox=None
       Dispatcher=None
       SupervisorStrategy=None
       ReceiveMiddlewares=[]
       SendMiddleware=[]
-      Spawner=None
       Behaviors=None
     }
 
@@ -110,13 +106,7 @@ module ActorApi =
                       do! behaviorHandler.ReceiveAsync(ctx)|>Async.AwaitTask
                     } |> Async.RunSynchronously
                   } |> ignore
-                  match cfg.OnReceiveBehavior with
-                  | None -> cfg.OnReceive ctx
-                  | Some handler ->
-                     maybe {
-                      let! b = bahoviorSwitcher
-                      handler b ctx
-                     }|>ignore
+                  cfg.OnReceive ctx
                 } |> Async.AsTask
       }
 
@@ -128,10 +118,6 @@ module ActorApi =
       [<CustomOperation ("receive", MaintainsVariableSpace = true)>]
       member this.Receive(config, handler) =
           {config with OnReceive=handler}
-
-      [<CustomOperation ("receiveWithBehavior", MaintainsVariableSpace = true)>]
-      member this.ReceiveWithBehavior(config, handler) =
-          {config with OnReceiveBehavior=Some handler}
 
       [<CustomOperation ("mailbox", MaintainsVariableSpace = true)>]
       member this.Mailbox(config, mailbox) =
@@ -153,10 +139,6 @@ module ActorApi =
       member this.SendMiddlewares(config, middlewares) =
           {config with SendMiddleware=middlewares}
 
-      [<CustomOperation ("spawner", MaintainsVariableSpace = true)>]
-      member this.Spawner(config, spawner) =
-          {config with Spawner=Some spawner}
-
       [<CustomOperation ("behaviors", MaintainsVariableSpace = true)>]
       member this.Behaviors(config, behaviors) =
           {config with Behaviors=Some behaviors}
@@ -169,7 +151,7 @@ module ActorApi =
         maybe {
           let! mailBox = cfg.Mailbox
           props <- props.WithMailbox(
-              fun () -> mailBox
+              fun () -> mailBox()
           )
         } |> ignore
         maybe {
@@ -180,10 +162,6 @@ module ActorApi =
           let! strategy = cfg.SupervisorStrategy
           props <- props.WithChildSupervisorStrategy strategy
         } |> ignore
-        maybe {
-          let! spawner = cfg.Spawner
-          props <- props.WithSpawner spawner
-        } |> ignore
         props<-
           props
             .WithReceiveMiddleware(cfg.ReceiveMiddlewares|>List.map toFuncReceiveMiddleware|>List.toArray)
@@ -193,6 +171,20 @@ module ActorApi =
     ///Simple actor
     let actor = ActorBuilder()
 
+    let actorOf f =
+      actor {
+        receive f
+      }
+    let behaviorOf f =
+      actor {
+        behaviors f
+      }
+    let withMailbox (m:unit->IMailbox) (props:Props) = props.WithMailbox (fun ()->m())
+    let withSupervisorStrategy s (props:Props) = props.WithChildSupervisorStrategy s
+    let withReceiveMiddleware m (props:Props) = props.WithReceiveMiddleware(m|>List.map toFuncReceiveMiddleware|>List.toArray)
+    let withSenderMiddleware m (props:Props) = props.WithSenderMiddleware(m|>List.map toFuncSendMiddleware|>List.toArray)
+    let withDispatcher d (props:Props) = props.WithDispatcher d
+    let withSpawner s (props:Props) = props.WithSpawner s
     let spawn props = props |> Actor.Spawn
     let spawnNamed name props = Actor.SpawnNamed(props, name)
     let spawnPrefix prefix props = Actor.SpawnPrefix(props, prefix)
