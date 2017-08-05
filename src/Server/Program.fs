@@ -16,6 +16,9 @@ module Server =
   open Suave.Sockets
   open Suave.Sockets.Control
   open Newtonsoft.Json
+  open Proto
+  open Feezer.Server.ActorModel.Connection
+  open Feezer.Server.ActorModel.FSharpApi
 
 
   let private jsonConverter = Fable.JsonConverter() :> JsonConverter
@@ -31,8 +34,17 @@ module Server =
          clients |> Seq.iter (fun (w:WebSocket) ->  w.send Text data true |> Async.Ignore |> Async.Start)
          ()
 
+      let send (w:WebSocket) msg =
+         let data = toJson <| msg |> UTF8.bytes |> ByteSegment
+         w.send Text data true |> Async.Ignore |> Async.Start
+         ()
+
+      let connectionActor = ConnectionActor.create() |> spawnNamed "socket"
+
       let ws (webSocket:WebSocket) (context:HttpContext) =
+
         clients.Add webSocket
+        connectionActor <! Connect (send webSocket)
         socket {
           let mutable loop = true
 
@@ -45,6 +57,7 @@ module Server =
                 let evt = Logging.Message.eventX <| "Message received: " + strData
                 let clientMessage = fromJson<Client> strData
                 context.runtime.logger.log Logging.Info evt |> Async.Start
+                connectionActor <! MessageReceived(clientMessage)
                 let response =
                     match clientMessage with
                     | Authozrize ->

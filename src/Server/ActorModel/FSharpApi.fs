@@ -1,4 +1,4 @@
-namespace ActorApi
+namespace Feezer.Server.ActorModel.FSharpApi
 
 open System
 open System.Threading.Tasks
