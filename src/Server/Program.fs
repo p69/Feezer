@@ -15,39 +15,32 @@ module Server =
   open Suave.WebSocket
   open Suave.Sockets
   open Suave.Sockets.Control
-  open Newtonsoft.Json
+  open Feezer.Server.Utils
   open Proto
   open Feezer.Server.ActorModel.Connection
   open Feezer.Server.ActorModel.FSharpApi
-
-
-  let private jsonConverter = Fable.JsonConverter() :> JsonConverter
-  let private fromJson<'a> value = JsonConvert.DeserializeObject<'a>(value, [|jsonConverter|])
-  let private toJson value = JsonConvert.SerializeObject(value, [|jsonConverter|])
+  open Feezer.Server.ActorModel.Authorization
+  open Feezer.Server.ActorModel.AppRouter
+  open System.Collections.Concurrent
 
   [<EntryPoint>]
   let main argv =
       let config = Config.get()
-      let clients = ResizeArray()
-      let sendToAllClients msg =
-         let data = toJson <| msg |> UTF8.bytes |> ByteSegment
-         clients |> Seq.iter (fun (w:WebSocket) ->  w.send Text data true |> Async.Ignore |> Async.Start)
-         ()
-
       let send (w:WebSocket) msg =
          let data = toJson <| msg |> UTF8.bytes |> ByteSegment
          w.send Text data true |> Async.Ignore |> Async.Start
          ()
 
-      let connectionActor = ConnectionActor.create() |> spawnNamed "socket"
+      let authorizationActor = (AuthorizationActor.create config) |> spawnNamed AuthorizationActor.Name
+
+      let appRouter = RouterActor.create <| ConcurrentDictionary<Client,PID>(dict [(Client.Authozrize, authorizationActor)]) |> spawn
+      let connectionActor = ConnectionActor.create [|authorizationActor|] |> spawnNamed ConnectionActor.Name
+      ClientKeeper.initBy connectionActor
 
       let ws (webSocket:WebSocket) (context:HttpContext) =
-
-        clients.Add webSocket
         connectionActor <! Connect (send webSocket)
         socket {
           let mutable loop = true
-
           while loop do
             let! msg = webSocket.read()
 
@@ -57,49 +50,24 @@ module Server =
                 let evt = Logging.Message.eventX <| "Message received: " + strData
                 let clientMessage = fromJson<Client> strData
                 context.runtime.logger.log Logging.Info evt |> Async.Start
-                connectionActor <! MessageReceived(clientMessage)
-                let response =
-                    match clientMessage with
-                    | Authozrize ->
-                        let permissions = Authorization.Email <||> Authorization.Basic <||> Authorization.DeleteLibrary <||> Authorization.ManageLibrary <||> Authorization.OfflineAccess
-                        let uri = Authorization.buildLoginUri config.DeezerAppId "http://localhost:8080/auth" permissions
-                        let serverMessage = Authorization(uri)
-                        toJson serverMessage |> UTF8.bytes |> ByteSegment
-
-                do! webSocket.send Text response true
-
+                appRouter <! clientMessage
             | (Close, _, _) ->
+                connectionActor <! Disconnect
                 let emptyResponse = [||] |> ByteSegment
                 do! webSocket.send Close emptyResponse true
-                clients.Remove webSocket |> ignore
                 loop <- false
 
             | _ -> ()
         }
 
-
-      let  downloadString (uri:string) =
-        async {
-            use client = new HttpClient()
-            let! response = client.GetAsync(uri) |> Async.AwaitTask
-            return! response.Content.ReadAsStringAsync() |> Async.AwaitTask
-        }
-
-
       let handleDeezerAuth: WebPart =
         fun (ctx:HttpContext) ->
             async {
-                let codeParam = ctx.request.queryParamOpt "code"
+                let codeParam = ctx.request.queryParamOpt Authorization.authCodeParamName
                 match codeParam with
                  | Some (_,paramValue) ->
                        match paramValue with
-                        | Some code ->
-                            let getAccessTokenWithParams = Authorization.getAccessToken code config.DeezerAppId config.DeezerAppSecret
-                            let getAccessTokenWithJsonParse = getAccessTokenWithParams fromJson<Authorization.AuthorizationResult>
-                            let getAccessTokenWothSystemDateTime = getAccessTokenWithJsonParse (fun()->DateTime.Now)
-
-                            let! (token, expiration) = downloadString |> getAccessTokenWothSystemDateTime
-                            sendToAllClients<|Authorized(expiration)
+                        | Some code -> authorizationActor <! CodeCallbackReceived(code)
                         | None -> ()
                  | None -> ()
                 return! OK "" ctx
@@ -110,7 +78,7 @@ module Server =
             path "/fcon" >=> handShake ws
             GET >=> choose
               [ path "/auth" >=> handleDeezerAuth
-                path "/bye" >=> OK "good bye"]
+              ]
             POST >=> choose
               [ path "/post" >=> OK "dasda"]
           ]

@@ -3,4 +3,5 @@ Suave
 Newtonsoft.Json
 Fable.JsonConverter
 Proto.Actor
+Proto.Router
 FSharp.Control.FusionTasks.FS41
