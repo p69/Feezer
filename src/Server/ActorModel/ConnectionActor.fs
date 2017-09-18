@@ -22,7 +22,7 @@ module ConnectionActor =
   let Name = "socket"
 
   let private behaviorsList connectionListeners switcher =
-    let listeners = Router.NewBroadcastGroup(null, connectionListeners) |> spawn
+    let listeners = Router.NewBroadcastGroup(connectionListeners) |> spawn
     let mutable handleSend = None
 
     let rec disconnected (ctx:IContext) =

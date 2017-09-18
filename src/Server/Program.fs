@@ -13,7 +13,6 @@ module Server =
   open Suave.Operators
   open Suave.Successful
   open Suave.WebSocket
-  open Suave.Sockets
   open Suave.Sockets.Control
   open Feezer.Server.Utils
   open Proto
@@ -22,12 +21,13 @@ module Server =
   open Feezer.Server.ActorModel.Authorization
   open Feezer.Server.ActorModel.AppRouter
   open System.Collections.Concurrent
+  open System.Text
 
   [<EntryPoint>]
   let main argv =
       let config = Config.get()
       let send (w:WebSocket) msg =
-         let data = toJson <| msg |> UTF8.bytes |> ByteSegment
+         let data = toJson <| msg |> Encoding.UTF8.GetBytes |> ArraySegment
          w.send Text data true |> Async.Ignore |> Async.Start
          ()
 
@@ -46,14 +46,14 @@ module Server =
 
             match msg with
             | (Text, data, true) ->
-                let strData = UTF8.toString data
+                let strData = Encoding.UTF8.GetString data
                 let evt = Logging.Message.eventX <| "Message received: " + strData
                 let clientMessage = fromJson<Client> strData
                 context.runtime.logger.log Logging.Info evt |> Async.Start
                 appRouter <! clientMessage
             | (Close, _, _) ->
                 connectionActor <! Disconnect
-                let emptyResponse = [||] |> ByteSegment
+                let emptyResponse = [||] |> ArraySegment
                 do! webSocket.send Close emptyResponse true
                 loop <- false
 
