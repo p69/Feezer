@@ -2,35 +2,24 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Suave server",
+            "name": "Server",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "build",
-            "program": "${workspaceRoot}/src/Server/bin/Debug/netcoreapp1.1/Server.dll",
+            "preLaunchTask": "build server",
+            "program": "${workspaceRoot}/src/Server/bin/Debug/netcoreapp2.0/Server.dll",
             "args": [],
             "cwd": "${workspaceRoot}",
             "stopAtEntry": false,
             "console": "externalTerminal"
         },
         {
-            "name": "Debug Utils.Tests",
+            "name": "Debug server tests",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceRoot}/tests/Utils.Tests/bin/Debug/netcoreapp1.1/Utils.Tests.dll",
+            "program": "${workspaceRoot}/tests/Utils.Tests/bin/Debug/netcoreapp2.0/Utils.Tests.dll",
             "args": [],
-            "cwd": "${workspaceRoot}",
-            "stopAtEntry": false,
-            "console": "externalTerminal"
-        },
-                {
-            "name": "Debug Domain.Tests",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build",
-            "program": "${workspaceRoot}/tests/Domain.Tests/bin/Debug/netcoreapp1.1/Domain.Tests.dll",
-            "args": [],
-            "cwd": "${workspaceRoot}",
+            "cwd": "${workspaceRoot}/tests/Utils.Tests",
             "stopAtEntry": false,
             "console": "externalTerminal"
         },

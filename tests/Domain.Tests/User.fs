@@ -41,36 +41,36 @@ let tests =
       let expectedUri = Authorization.deezerBaseAuthUri+"app_id="+appId+"&redirect_uri="+authCallbackUrl+"&perms="+permissions.AsQueryString
       Expect.equal expectedUri uri ""
 
-    testAsync "get authorize token which never expires" {
-      let response = """
-        {
-          "access_token":"tokeeeen",
-          "expires":0
-        }
-      """
-      let downloadContent = downloadJsonStub response
-      let getAccessTokeWithParams = Authorization.getAccessToken code appId appSecrete fromJson<Authorization.AuthorizationResult>
-      let! (token, expiration) = downloadContent |> getAccessTokeWithParams getDateTimeNow
-      Expect.equal "tokeeeen" token "token"
-      Expect.equal Never expiration "expiration"
-    }
+    // testAsync "get authorize token which never expires" {
+    //   let response = """
+    //     {
+    //       "access_token":"tokeeeen",
+    //       "expires":0
+    //     }
+    //   """
+    //   let downloadContent = downloadJsonStub response
+    //   let getAccessTokeWithParams = Authorization.getAccessToken code appId appSecrete fromJson<Authorization.AuthorizationResult>
+    //   let! (token, expiration) = downloadContent |> getAccessTokeWithParams getDateTimeNow
+    //   Expect.equal "tokeeeen" token "token"
+    //   Expect.equal Never expiration "expiration"
+    // }
 
-    testAsync "get authorize token with expiration" {
-      let response = """
-        {
-          "access_token":"tokeeeen2",
-          "expires": 172800
-        }
-      """
-      let downloadContent = downloadJsonStub response
+    // testAsync "get authorize token with expiration" {
+    //   let response = """
+    //     {
+    //       "access_token":"tokeeeen2",
+    //       "expires": 172800
+    //     }
+    //   """
+    //   let downloadContent = downloadJsonStub response
 
-      let getAccessTokeWithParams = Authorization.getAccessToken code appId appSecrete fromJson<Authorization.AuthorizationResult>
-      let! (token, expiration) = downloadContent |> getAccessTokeWithParams getDateTimeNow
-      let expectedDate = getDateTimeNow().AddSeconds(172800|>float)
-      Expect.equal "tokeeeen2" token "token"
-      match expiration with
-      | Never -> failtest "should be exact expiration date"
-      | Date date -> Expect.equal expectedDate date "expiration dates not matched"
-    }
+    //   let getAccessTokeWithParams = Authorization.getAccessToken code appId appSecrete fromJson<Authorization.AuthorizationResult>
+    //   let! (token, expiration) = downloadContent |> getAccessTokeWithParams getDateTimeNow
+    //   let expectedDate = getDateTimeNow().AddSeconds(172800|>float)
+    //   Expect.equal "tokeeeen2" token "token"
+    //   match expiration with
+    //   | Never -> failtest "should be exact expiration date"
+    //   | Date date -> Expect.equal expectedDate date "expiration dates not matched"
+    // }
 
   ]

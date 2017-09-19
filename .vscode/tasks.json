@@ -4,14 +4,80 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "taskName": "build",
-            "command": "dotnet",
+            "taskName": "build server",
+            "command": "dotnet build",
             "type": "shell",
             "group": "build",
             "presentation": {
                 "reveal": "silent"
             },
-            "problemMatcher": "$msCompile"
+            "problemMatcher": "$msCompile",
+            "options": {
+                "cwd": "${workspaceRoot}/src/Server"
+            }
+        },
+        {
+            "taskName": "build domain tests",
+            "command": "dotnet build",
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "reveal": "silent"
+            },
+            "problemMatcher": "$msCompile",
+            "options": {
+                "cwd": "${workspaceRoot}/tests/Domain.Tests"
+            }
+        },
+        {
+            "taskName": "build utils tests",
+            "command": "dotnet build",
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "reveal": "silent"
+            },
+            "problemMatcher": "$msCompile",
+            "options": {
+                "cwd": "${workspaceRoot}/tests/Utils.Tests"
+            }
+        },
+        {
+            "taskName": "build all",
+            "dependsOn": ["build server"]
+        },
+        {
+            "taskName": "run domain tests",
+            "command": "dotnet run",
+            "type": "shell",
+            "group": "test",
+            "presentation": {
+                "reveal": "always"
+            },
+            "problemMatcher": "$msCompile",
+            "options": {
+                "cwd": "${workspaceRoot}/tests/Domain.Tests"
+            },
+            "dependsOn": ["build domain tests"]
+        },
+        {
+            "taskName": "run utils tests",
+            "command": "dotnet run",
+            "type": "shell",
+            "group": "test",
+            "presentation": {
+                "reveal": "always"
+            },
+            "problemMatcher": "$msCompile",
+            "options": {
+                "cwd": "${workspaceRoot}/tests/Utils.Tests"
+            },
+            "dependsOn": ["build utils tests"]
+        },
+        {
+            "taskName": "run all tests",
+            "group": "test",
+            "dependsOn": ["run domain tests", "run utils tests"]
         }
     ]
 }
