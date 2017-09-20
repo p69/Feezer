@@ -24,17 +24,18 @@ module HttpActor =
         try
             let! response = task |> Async.AwaitTask
             let! result = response.Content.ReadAsStringAsync() |> Async.AwaitTask
-            Option.iter (fun s -> s <! Ok(uri, result)) sender
+            Option.iter (fun s -> s <! Success(uri, result)) sender
         with
         | exn as ex -> Option.iter (fun s -> s <! Error(uri, ex.ToString())) sender
         return ()
     }
+
   let create () =
     actor {
       receive (fun ctx ->
         ctx.Message
         >>| fun (msg:Request) ->
-              let sender = if isNull ctx.Sender then None else Some ctx.Sender
+              let sender = Option.ofObj ctx.Sender
               msg |> doRequest sender |> Async.RunSynchronously
       )
     }

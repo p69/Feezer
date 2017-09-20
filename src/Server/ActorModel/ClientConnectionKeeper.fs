@@ -12,5 +12,5 @@ module ClientKeeper =
 
     let sendMessage (msg:Protocol.Server) =
         match clientConnection with
-        | Some actor -> actor <! msg
+        | Some actor -> actor <! SendMessage(msg)
         | None -> () //log
