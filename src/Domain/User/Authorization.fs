@@ -2,7 +2,6 @@ namespace Feezer.Domain.User
 
 module Authorization =
     open System
-    open Feezer.Domain.Protocol
 
     type Permission =
         | Basic
