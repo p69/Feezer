@@ -1,33 +1,24 @@
 var path = require("path");
 var webpack = require("webpack");
+var fableUtils = require("fable-utils");
 
 function resolve(filePath) {
   return path.join(__dirname, filePath)
 }
 
-var babelOptions = {
+var babelOptions = fableUtils.resolveBabelOptions({
   presets: [["es2015", { "modules": false }]],
   plugins: ["transform-runtime"]
-}
+});
 
 var isProduction = process.argv.indexOf("-p") >= 0;
 console.log("Bundling for " + (isProduction ? "production" : "development") + "...");
 
-module.exports = {
+var basicConfig = {
   devtool: "source-map",
-  entry: {
-    main: resolve("./src/Main/Main.fsproj"),
-    renderer: resolve("./src/Renderer/Renderer.fsproj")
+  resolve: {
+    modules: [resolve("./node_modules/")]
   },
-  output: {
-    filename: "[name].js",
-    path: resolve("./app/js"),
-    libraryTarget: "commonjs2"
-  },
-  externals: {
-    electron: true
-  },
-  target: "node",
   node: {
     __dirname: false,
     __filename: false
@@ -46,16 +37,32 @@ module.exports = {
       },
       {
         test: /\.js$/,
-        exclude: [
-          /node_modules[\\\/](?!fable-)/,
-          /packages[\\\/](?!fable)/,
-          /src\/Shared/          
-          ],
+        exclude: /node_modules/,
         use: {
           loader: 'babel-loader',
           options: babelOptions
         },
-      },
+      }
     ]
   }
 };
+
+var mainConfig = Object.assign({
+  target: "electron-main",
+  entry: resolve("Main/Main.fsproj"),
+  output: {
+    path: resolve("app/js"),
+    filename: "main.js"
+  }
+}, basicConfig);
+
+var rendererConfig = Object.assign({
+  target: "electron-renderer",
+  entry: resolve("Renderer/Renderer.fsproj"),
+  output: {
+    path: resolve("app/js"),
+    filename: "renderer.js"
+  }
+}, basicConfig);
+
+module.exports = [mainConfig, rendererConfig]
