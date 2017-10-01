@@ -28,6 +28,7 @@
     "fable-loader": "^1.0.7",
     "fable-utils": "^1.0.2",
     "loglevel": "^1.4.1",
-    "webpack": "^3.5.5"
+    "webpack": "^3.5.5",
+    "bulma": "^0.5.3"
   }
 }

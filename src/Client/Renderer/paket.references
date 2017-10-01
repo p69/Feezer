@@ -2,3 +2,9 @@ dotnet-fable
 Fable.Core
 Fable.Import.Browser
 Fable.Import.Electron
+Fulma
+Fable.Elmish.React
+Fable.Elmish.Browser
+Fable.Elmish.Debugger
+Fulma.Extensions
+Fable.PowerPack

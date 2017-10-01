@@ -7,6 +7,7 @@ open Fable.Core
 open Fable.Core.JsInterop
 open Feezer.Domain.Protocol
 open Fable.Import
+open Fulma.Layouts
 
 module E = Fable.Import.Electron
 
@@ -37,7 +38,7 @@ let onMessageReceived (evt:MessageEvent) =
         match expiration with
         | Never -> body.textContent <- "Token expiration: never"
         | Date date -> body.textContent <- sprintf "Token expiration: %A" date
-        
+
         match authPopup with
         | Some popUp -> popUp.close()
         | None -> ()
