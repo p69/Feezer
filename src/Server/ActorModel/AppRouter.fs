@@ -7,14 +7,17 @@ open System.Collections.Concurrent
 open Feezer.Domain
 
 module RouterActor =
-    let handleReceive (routeesMap:ConcurrentDictionary<Protocol.Client, PID>) (ctx:IContext) =
-      ctx.Message
-      >>| fun (msg:Protocol.Client) ->
-          match routeesMap.TryGetValue msg with
-          | (true, pid) -> pid <! msg
-          | (fals,_) -> ()//TODO: log
-    let create (routeesMap:ConcurrentDictionary<Protocol.Client, PID>) =
-        let routeeProps = actor {
-                receive (handleReceive routeesMap)
+
+    let private router (routeesMap:ConcurrentDictionary<Protocol.Client, PID>) (mailbox:Actor<IContext,Protocol.Client>) =
+        let rec loop() =
+            actor {
+                let! (_, msg) = mailbox.Receive()
+                match routeesMap.TryGetValue msg with
+                | (true, pid) -> pid <! msg
+                | (fals,_) -> ()//TODO: log
+                return! loop()
             }
-        Router.NewRoundRobinPool(routeeProps, 4)
+        loop()
+
+    let create (routeesMap:ConcurrentDictionary<Protocol.Client, PID>) =
+        Router.NewRoundRobinPool(router routeesMap |> propsD, 4)

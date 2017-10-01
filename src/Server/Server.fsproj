@@ -1,23 +1,23 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Utils.fs" />
-    <Compile Include="Config.fs" />
-    <Compile Include="ActorModel\FSharpApi.fs" />
-    <Compile Include="ActorModel\HttpActor.fs" />
-    <Compile Include="ActorModel\AppRouter.fs" />
-    <Compile Include="ActorModel\ConnectionActor.fs" />
-    <Compile Include="ActorModel\ClientConnectionKeeper.fs" />
-    <Compile Include="ActorModel\AuthorizationActor.fs" />
-    <Compile Include="Program.fs" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\Utils\Utils.fsproj" />
     <ProjectReference Include="..\Domain\Domain.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Utils.fs" />
+    <Compile Include="Config.fs" />
+    <Compile Include="ActorModel/FSharpApi.fs" />
+    <Compile Include="ActorModel/HttpActor.fs" />
+    <Compile Include="ActorModel/AppRouter.fs" />
+    <Compile Include="ActorModel/ConnectionActor.fs" />
+    <Compile Include="ActorModel/ClientConnectionKeeper.fs" />
+    <Compile Include="ActorModel/AuthorizationActor.fs" />
+    <Compile Include="ActorModel/UserActor.fs" />
+    <Compile Include="Program.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

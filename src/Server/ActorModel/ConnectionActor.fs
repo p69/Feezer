@@ -21,32 +21,38 @@ module ConnectionActor =
   [<Literal>]
   let Name = "socket"
 
-  let private behaviorsList connectionListeners switcher =
-    let listeners = Router.NewBroadcastGroup(connectionListeners) |> spawn
+  let private behaviorsList connectionListeners (mailbox:Actor<IContext,Message>) =
+    let listeners = Router.NewBroadcastGroup(connectionListeners) |> spawnP
     let mutable handleSend = None
 
-    let rec disconnected (ctx:IContext) =
-      ctx.Message
-      >>| fun (msg:Message) ->
-            match msg with
-            | Connect handler ->
-                handleSend<-Some handler
-                listeners <! Connected
-                switcher.become connected
-            | _ -> () //TODO add logging
-    and connected ctx =
-      ctx.Message
-      >>| fun (msg:Message) ->
-            match msg with
-            | Disconnect ->
-                handleSend<-None
-                listeners <! Disconnected
-                switcher.become disconnected
-            | SendMessage message ->
-                match handleSend with
-                | Some handler -> handler message
-                | None -> switcher.become disconnected //TODO log handler is None become disconnected
-            | _ ->() //TODO: log
-    [disconnected;connected]
+    let rec disconnected () =
+      actor {
+        let! (_,msg) = mailbox.Receive()
+        match msg with
+        | Connect handler ->
+            handleSend<-Some handler
+            listeners <! Connected
+            return! connected()
+        | _ -> return! disconnected()
+      }
 
-  let create connectionListeners =  behaviorOf <| behaviorsList connectionListeners
+    and connected () =
+      actor {
+        let! (_,msg) = mailbox.Receive()
+        match msg with
+        | Disconnect ->
+             handleSend<-None
+             listeners <! Disconnected
+             return! disconnected()
+        | SendMessage message ->
+             match handleSend with
+             | Some handler ->
+                 handler message
+                 return! connected()
+             | None -> return! disconnected() //TODO log handler is None become disconnected
+        | _ -> return! connected() //TODO: log
+      }
+
+    disconnected()
+
+  let create connectionListeners =  propsD <| behaviorsList connectionListeners

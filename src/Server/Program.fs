@@ -33,7 +33,7 @@ module Server =
 
       let authorizationActor = (AuthorizationActor.create config) |> spawnNamed AuthorizationActor.Name
 
-      let appRouter = RouterActor.create <| ConcurrentDictionary<Client,PID>(dict [(Client.Authozrize, authorizationActor)]) |> spawn
+      let appRouter = RouterActor.create <| ConcurrentDictionary<Client,PID>(dict [(Client.Authozrize, authorizationActor)]) |> spawnP
       let connectionActor = ConnectionActor.create [|authorizationActor|] |> spawnNamed ConnectionActor.Name
       ClientKeeper.initBy connectionActor
 

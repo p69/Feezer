@@ -4,8 +4,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="User/Authorization.fs" />
+    <Compile Include="User/User.fs" />
     <Compile Include="State.fs" />
     <Compile Include="Shared/Protocol.fs" />
+    <Compile Include="DeezerApiEndpoints.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

@@ -12,6 +12,7 @@ type Response =
     | Error of uri:string*error:string
 
 module HttpActor =
+
   let private doRequest (sender:PID option) request =
     async {
         let client = new HttpClient()
@@ -30,12 +31,13 @@ module HttpActor =
         return ()
     }
 
-  let create () =
-    actor {
-      receive (fun ctx ->
-        ctx.Message
-        >>| fun (msg:Request) ->
-              let sender = Option.ofObj ctx.Sender
-              msg |> doRequest sender |> Async.RunSynchronously
-      )
+  let handler (mailbox:Actor<IContext,Request>) =
+    let rec loop() = actor {
+        let! (ctx,msg) = mailbox.Receive()
+        let sender = Option.ofObj ctx.Sender
+        msg |> doRequest sender |> Async.RunSynchronously
+        return! loop()
     }
+    loop()
+
+  let createFromContext ctx = handler |> propsD |> spawnFromContext ctx

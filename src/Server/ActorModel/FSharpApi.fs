@@ -53,7 +53,6 @@ module ActorApi =
     type MessageHandlerWithBahavior = BehaviorSwitcher->IContext->unit
 
     type PropsConfig = {
-      OnReceive:MessagesHandler
       Mailbox:(unit->IMailbox) option
       Dispatcher:IDispatcher option
       SupervisorStrategy:ISupervisorStrategy option
@@ -62,7 +61,6 @@ module ActorApi =
       Behaviors:(BehaviorSwitcher->list<MessagesHandler>) option
     }
     let private zeroConfig = {
-      OnReceive=ignore
       Mailbox=None
       Dispatcher=None
       SupervisorStrategy=None
@@ -71,53 +69,10 @@ module ActorApi =
       Behaviors=None
     }
 
-
-    let createActor cfg =
-      let behavior =
-        maybe {
-          let! behaviorsList = cfg.Behaviors
-          return Behavior()
-        }
-      let bahoviorSwitcher =
-        maybe {
-          let! nativeBehavior = behavior
-          let switcher = {
-            become=
-              fun f ->
-                let handler = behaviorToReceive f
-                nativeBehavior.Become(handler)
-            becomeStacked=
-              fun f ->
-                let handler = behaviorToReceive f
-                nativeBehavior.BecomeStacked(handler)
-            unbecomeStacked=fun () -> nativeBehavior.UnbecomeStacked()
-          }
-          let! configFunction = cfg.Behaviors
-          let behaviorsList = configFunction switcher
-          behaviorToReceive <| behaviorsList.[0] |> nativeBehavior.Become
-          return switcher
-        }
-      { new IActor
-          with member this.ReceiveAsync(ctx) =
-                async {
-                  maybe {
-                    let! behaviorHandler = behavior
-                    async {
-                      do! behaviorHandler.ReceiveAsync(ctx)|>Async.AwaitTask
-                    } |> Async.RunSynchronously
-                  } |> ignore
-                  cfg.OnReceive ctx
-                } |> Async.AsTask
-      }
-
     /// The builder for simple actor computation expression.
-    type ActorBuilder() =
+    type ConfigBuilder() =
       member this.Zero() = zeroConfig
       member this.Yield (()) = this.Zero()
-
-      [<CustomOperation ("receive", MaintainsVariableSpace = true)>]
-      member this.Receive(config, handler) =
-          {config with OnReceive=handler}
 
       [<CustomOperation ("mailbox", MaintainsVariableSpace = true)>]
       member this.Mailbox(config, mailbox) =
@@ -143,10 +98,167 @@ module ActorApi =
       member this.Behaviors(config, behaviors) =
           {config with Behaviors=Some behaviors}
 
-      member this.Run(cfg:PropsConfig) =
+      member this.Run(config:PropsConfig) = config
+
+
+    ///Simple actor
+    let config = ConfigBuilder()
+
+    type IO<'T> =
+        | Input
+    /// Gives access to the next message throu let! binding in actor computation expression.
+    type Cont<'In, 'Out> =
+        | Func of ('In -> Cont<'In, 'Out>)
+        | Return of 'Out
+
+    [<Interface>]
+    type Actor<'Context, 'Message when 'Context :> IContext> =
+      abstract Receive: unit->IO<'Context*'Message>
+
+      /// The builder for actor computation expression.
+    type ActorBuilder() =
+
+        /// Binds the next message.
+        member __.Bind(m : IO<'In>, f : 'In -> _) = Func(fun m -> f m)
+
+        /// Binds the result of another actor computation expression.
+        member this.Bind(x : Cont<'In, 'Out1>, f : 'Out1 -> Cont<'In, 'Out2>) : Cont<'In, 'Out2> =
+            match x with
+            | Func fx -> Func(fun m -> this.Bind(fx m, f))
+            | Return v -> f v
+
+        member __.ReturnFrom(x) = x
+        member __.Return x = Return x
+        member __.Zero() = Return()
+
+        member this.TryWith(f : unit -> Cont<'In, 'Out>, c : exn -> Cont<'In, 'Out>) : Cont<'In, 'Out> =
+            try
+                true, f()
+            with ex -> false, c ex
+            |> function
+            | true, Func fn -> Func(fun m -> this.TryWith((fun () -> fn m), c))
+            | _, v -> v
+
+        member this.TryFinally(f : unit -> Cont<'In, 'Out>, fnl : unit -> unit) : Cont<'In, 'Out> =
+            try
+                match f() with
+                | Func fn -> Func(fun m -> this.TryFinally((fun () -> fn m), fnl))
+                | r ->
+                    fnl()
+                    r
+            with ex ->
+                fnl()
+                reraise()
+
+        member this.Using(d : #IDisposable, f : _ -> Cont<'In, 'Out>) : Cont<'In, 'Out> =
+            this.TryFinally((fun () -> f d),
+                            fun () ->
+                                if d <> null then d.Dispose())
+
+        member this.While(condition : unit -> bool, f : unit -> Cont<'In, unit>) : Cont<'In, unit> =
+            if condition() then
+                match f() with
+                | Func fn ->
+                    Func(fun m ->
+                        fn m |> ignore
+                        this.While(condition, f))
+                | v -> this.While(condition, f)
+            else Return()
+
+        member __.For(source : 'Iter seq, f : 'Iter -> Cont<'In, unit>) : Cont<'In, unit> =
+            use e = source.GetEnumerator()
+
+            let rec loop() =
+                if e.MoveNext() then
+                    match f e.Current with
+                    | Func fn ->
+                        Func(fun m ->
+                            fn m |> ignore
+                            loop())
+                    | r -> loop()
+                else Return()
+            loop()
+
+        member __.Delay(f : unit -> Cont<_, _>) = f
+        member __.Run(f : unit -> Cont<_, _>) = f()
+        member __.Run(f : Cont<_, _>) = f
+
+        member this.Combine(f : unit -> Cont<'In, _>, g : unit -> Cont<'In, 'Out>) : Cont<'In, 'Out> =
+            match f() with
+            | Func fx -> Func(fun m -> this.Combine((fun () -> fx m), g))
+            | Return _ -> g()
+
+        member this.Combine(f : Cont<'In, _>, g : unit -> Cont<'In, 'Out>) : Cont<'In, 'Out> =
+            match f with
+            | Func fx -> Func(fun m -> this.Combine(fx m, g))
+            | Return _ -> g()
+
+        member this.Combine(f : unit -> Cont<'In, _>, g : Cont<'In, 'Out>) : Cont<'In, 'Out> =
+            match f() with
+            | Func fx -> Func(fun m -> this.Combine((fun () -> fx m), g))
+            | Return _ -> g
+
+        member this.Combine(f : Cont<'In, _>, g : Cont<'In, 'Out>) : Cont<'In, 'Out> =
+            match f with
+            | Func fx -> Func(fun m -> this.Combine(fx m, g))
+            | Return _ -> g
+
+
+    type FunActor<'Message,'Returned>(actor : Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>, config:PropsConfig) as this =
+        let mutable state =
+            actor { new Actor<IContext, 'Message> with
+                        member __.Receive() = Input}
+
+        let behavior = maybe {
+            let! behaviorsList = cfg.Behaviors
+            return Behavior()
+          }
+
+        let bahoviorSwitcher = maybe {
+            let! nativeBehavior = behavior
+            let switcher = {
+              become=
+                fun f ->
+                  let handler = behaviorToReceive f
+                  nativeBehavior.Become(handler)
+              becomeStacked=
+                fun f ->
+                  let handler = behaviorToReceive f
+                  nativeBehavior.BecomeStacked(handler)
+              unbecomeStacked=fun () -> nativeBehavior.UnbecomeStacked()
+            }
+            let! configFunction = cfg.Behaviors
+            let behaviorsList = configFunction switcher
+            behaviorToReceive <| behaviorsList.[0] |> nativeBehavior.Become
+            return switcher
+          }
+
+        interface IActor with
+          member x.ReceiveAsync(ctx) =
+            async {
+              maybe {
+                let! behaviorHandler = behavior
+                async {
+                  do! behaviorHandler.ReceiveAsync(ctx)|>Async.AwaitTask
+                } |> Async.RunSynchronously
+              } |> ignore
+
+              match state with
+              | Func f ->
+                match ctx.Message with
+                | :?'Message as msg -> state <- f (ctx, msg)
+                | _ ->()
+              | Return _ -> ctx.Self.Stop()
+
+            } |> Async.AsTask
+
+    /// Builds an actor message handler using an actor expression syntax.
+    let actor = ActorBuilder()
+
+    let props (cfg:PropsConfig) (body:Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>) =
         let mutable props =
                 Actor.FromProducer(
-                  fun () -> createActor cfg
+                  fun () -> FunActor(body, cfg) :> IActor
                 )
         maybe {
           let! mailBox = cfg.Mailbox
@@ -168,29 +280,32 @@ module ActorApi =
             .WithSenderMiddleware(cfg.SendMiddleware|>List.map toFuncSendMiddleware|>List.toArray)
         props
 
-    ///Simple actor
-    let actor = ActorBuilder()
-
-    let actorOf f =
-      actor {
-        receive f
-      }
-    let behaviorOf f =
-      actor {
-        behaviors f
-      }
+    let propsD (body:Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>) = props zeroConfig body
     let withMailbox (m:unit->IMailbox) (props:Props) = props.WithMailbox (fun ()->m())
     let withSupervisorStrategy s (props:Props) = props.WithChildSupervisorStrategy s
     let withReceiveMiddleware m (props:Props) = props.WithReceiveMiddleware(m|>List.map toFuncReceiveMiddleware|>List.toArray)
     let withSenderMiddleware m (props:Props) = props.WithSenderMiddleware(m|>List.map toFuncSendMiddleware|>List.toArray)
     let withDispatcher d (props:Props) = props.WithDispatcher d
     let withSpawner s (props:Props) = props.WithSpawner s
-    let spawn props = props |> Actor.Spawn
+    let spawnP props = props |> Actor.Spawn
     let spawnNamed name props = Actor.SpawnNamed(props, name)
     let spawnPrefix prefix props = Actor.SpawnPrefix(props, prefix)
     let spawnFromContext (ctx:IContext) props = ctx.Spawn(props)
     let spawnNamedFromContext name (ctx:IContext) props = ctx.SpawnNamed(props, name)
     let spawnPrefixFromContext prefix (ctx:IContext) props = ctx.SpawnPrefix(props, prefix)
+    let spawn (body:Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>) = propsD body |> spawnP
+    let spawnWithConfig (cfg:PropsConfig) (body:Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>) = props cfg body |> spawnP
+
+    let actorOf (fn : IContext*'Message -> unit) (mailbox : Actor<IContext,'Message>) =
+      let rec loop() =
+          actor {
+              let! msg = mailbox.Receive()
+              fn msg
+              return! loop()
+          }
+      loop()
+
+
     let tell<'a> (msg:'a) (pid:PID) = pid.Tell(msg)
     let inline (<!) p m = tell m p
     let request<'a> (msg:'a) (receiver:PID) (sender:PID) = receiver.Request(msg, sender)
