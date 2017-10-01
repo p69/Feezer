@@ -4,7 +4,10 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\..\Domain\Shared\Protocol.fs" />
+    <ProjectReference Include="..\..\Domain\Domain.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- <Compile Include="..\..\Domain\Shared\Protocol.fs" /> -->
     <Compile Include="Renderer.fs" />
   </ItemGroup>
   <Import Project="..\..\..\.paket\Paket.Restore.targets" />

@@ -31,7 +31,7 @@ module HttpActor =
         return ()
     }
 
-  let handler (mailbox:Actor<IContext,Request>) =
+  let private handler (mailbox:Actor<IContext,Request>) =
     let rec loop() = actor {
         let! (ctx,msg) = mailbox.Receive()
         let sender = Option.ofObj ctx.Sender

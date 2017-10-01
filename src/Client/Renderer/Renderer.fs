@@ -6,8 +6,10 @@ open Fable.Import.Browser
 open Fable.Core
 open Fable.Core.JsInterop
 open Feezer.Domain.Protocol
+open Feezer.Domain.User
 open Fable.Import
 open Fulma.Layouts
+open System
 
 module E = Fable.Import.Electron
 
@@ -16,6 +18,8 @@ let mutable private authPopup: E.BrowserWindow option = None
 let body = document.getElementById("app")
 
 body.textContent <- "Hello Feezer!"
+
+let user = {name="blasd";id=1;avatar="dsad"}
 
 let onSocketConnected (ws:WebSocket) =
     body.textContent <- "Socket connected"
