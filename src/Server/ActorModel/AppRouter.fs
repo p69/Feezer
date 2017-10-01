@@ -13,7 +13,7 @@ module RouterActor =
             actor {
                 let! (_, msg) = mailbox.Receive()
                 match routeesMap.TryGetValue msg with
-                | (true, pid) -> pid <! msg
+                | (true, pid) -> pid <!! msg
                 | (fals,_) -> ()//TODO: log
                 return! loop()
             }

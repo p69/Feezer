@@ -255,6 +255,16 @@ module ActorApi =
     /// Builds an actor message handler using an actor expression syntax.
     let actor = ActorBuilder()
 
+    type TypedPID<'Message> (pid:PID) =
+        member this.Tell(msg:'Message) = pid.Tell(msg)
+        member this.Request(msg:'Message, sender) = pid.Request(msg, sender)
+        member this.RequestAsync(msg:'Messagem) =
+            async {
+                let! result = pid.RequestAsync(msg) |> Async.AwaitTask
+                return result
+            }
+        member this.Origin with get() = pid
+
     let propsWithConfig (cfg:PropsConfig) (body:Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>) =
         let mutable props =
                 Actor.FromProducer(
@@ -289,19 +299,19 @@ module ActorApi =
     let withDispatcher d (props:Props) = props.WithDispatcher d
     let withSpawner s (props:Props) = props.WithSpawner s
 
-    let spawnProps props = props |> Actor.Spawn
-    let spawn body = props body |> spawnProps
-    let spawnPropsNamed name props = Actor.SpawnNamed(props, name)
-    let spawnPropsPrefix prefix props = Actor.SpawnPrefix(props, prefix)
-    let spawnPropsFromContext (ctx:IContext) props = ctx.Spawn(props)
-    let spawnPropsNamedFromContext name (ctx:IContext) props = ctx.SpawnNamed(props, name)
-    let spawnPropsPrefixFromContext prefix (ctx:IContext) props = ctx.SpawnPrefix(props, prefix)
-    let spawnNamed name body = body |> props |> spawnPropsNamed name
-    let spawnPrefix prefix body = body |> props |> spawnPropsPrefix prefix
-    let spawnFromContext ctx body = body |> props |> spawnPropsFromContext ctx
-    let spawnNamedFromContext name ctx body = body |> props |> spawnPropsNamedFromContext name ctx
-    let spawnPrefixFromContext prefix ctx body = body |> props |> spawnPropsPrefixFromContext prefix ctx
-    let spawnWithConfig (cfg:PropsConfig) body = propsWithConfig cfg body |> spawnProps
+    let spawnProps<'Message> props = TypedPID<'Message>(props |> Actor.Spawn)
+    let spawn (body:Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>) = props body |> spawnProps<'Message>
+    let spawnPropsNamed<'Message> name props = TypedPID<'Message>(Actor.SpawnNamed(props, name))
+    let spawnPropsPrefix<'Message> prefix props = TypedPID<'Message>(Actor.SpawnPrefix(props, prefix))
+    let spawnPropsFromContext<'Message> (ctx:IContext) props = TypedPID<'Message>(ctx.Spawn(props))
+    let spawnPropsNamedFromContext<'Message> name (ctx:IContext) props = TypedPID<'Message>(ctx.SpawnNamed(props, name))
+    let spawnPropsPrefixFromContext<'Message> prefix (ctx:IContext) props = TypedPID<'Message>(ctx.SpawnPrefix(props, prefix))
+    let spawnNamed name (body:Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>) = body |> props |> spawnPropsNamed<'Message> name
+    let spawnPrefix prefix (body:Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>) = body |> props |> spawnPropsPrefix<'Message> prefix
+    let spawnFromContext ctx (body:Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>) = body |> props |> spawnPropsFromContext<'Message> ctx
+    let spawnNamedFromContext name ctx (body:Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>) = body |> props |> spawnPropsNamedFromContext<'Message> name ctx
+    let spawnPrefixFromContext prefix ctx (body:Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>) = body |> props |> spawnPropsPrefixFromContext<'Message> prefix ctx
+    let spawnWithConfig (cfg:PropsConfig) (body:Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>) = propsWithConfig cfg body |> spawnProps<'Message>
 
     let actorOf (fn : IContext*'Message -> unit) (mailbox : Actor<IContext,'Message>) =
       let rec loop() =
@@ -313,16 +323,27 @@ module ActorApi =
       loop()
 
 
-    let tell<'a> (msg:'a) (pid:PID) = pid.Tell(msg)
+    let tell<'a> (msg:'a) (pid:TypedPID<'a>) = pid.Tell(msg)
     let inline (<!) p m = tell m p
-    let request<'a> (msg:'a) (receiver:PID) (sender:PID) = receiver.Request(msg, sender)
+
+    let tellUntyped msg (pid:PID) = pid.Tell(msg)
+    let inline (<!!) p m = tellUntyped m p
+
+    let request<'a> (msg:'a) (receiver:TypedPID<'a>) (sender:PID) = receiver.Request(msg, sender)
     let inline (<?) p (m,s) = request m p s
-    let requestAsync<'a, 'b> (msg:'a) (receiver:PID) : Async<'b>=
-      async {
-          let! result = receiver.RequestAsync(msg) |> Async.AwaitTask
-          return result
-      }
+
+    let requestUntyped msg (receiver:PID) (sender:PID) = receiver.Request(msg, sender)
+    let inline (<!?) p (m,s) = request m p s
+
+    let requestAsync<'a, 'b> (msg:'a) (receiver:TypedPID<'a>) : Async<'b> = receiver.RequestAsync(msg)
     let inline (<??) p m = requestAsync m p
+
+    let requestUntypedAsync<'a, 'b> (msg:'a) (receiver:PID) : Async<'b> =
+        async {
+            let! result = receiver.RequestAsync(msg) |> Async.AwaitTask
+            return result
+        }
+    let inline (<!??) p m = requestAsync m p
 
     let matchMessage<'a> f message =
       match box message with

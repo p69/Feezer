@@ -33,9 +33,9 @@ module Server =
 
       let authorizationActor = (AuthorizationActor.create config) |> spawnPropsNamed AuthorizationActor.Name
 
-      let appRouter = RouterActor.create <| ConcurrentDictionary<Client,PID>(dict [(Client.Authozrize, authorizationActor)]) |> spawnProps
-      let connectionActor = ConnectionActor.create [|authorizationActor|] |> spawnPropsNamed ConnectionActor.Name
-      ClientKeeper.initBy connectionActor
+      let appRouter = RouterActor.create <| ConcurrentDictionary<Client,PID>(dict [(Client.Authozrize, authorizationActor.Origin)]) |> spawnProps
+      let connectionActor = ConnectionActor.create [|authorizationActor.Origin|] |> spawnPropsNamed ConnectionActor.Name
+      ClientKeeper.initBy connectionActor.Origin
 
       let ws (webSocket:WebSocket) (context:HttpContext) =
         connectionActor <! Connect (send webSocket)

@@ -25,9 +25,9 @@ module HttpActor =
         try
             let! response = task |> Async.AwaitTask
             let! result = response.Content.ReadAsStringAsync() |> Async.AwaitTask
-            Option.iter (fun s -> s <! Success(uri, result)) sender
+            Option.iter (fun s -> s <!! Success(uri, result)) sender
         with
-        | exn as ex -> Option.iter (fun s -> s <! Error(uri, ex.ToString())) sender
+        | exn as ex -> Option.iter (fun s -> s <!! Error(uri, ex.ToString())) sender
         return ()
     }
 
