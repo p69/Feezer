@@ -66,4 +66,4 @@ module AuthorizationActor =
 
 
   let create (config:AppConfig) =
-    handleReceive config |> propsD
+    handleReceive config |> props

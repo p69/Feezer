@@ -22,7 +22,7 @@ module ConnectionActor =
   let Name = "socket"
 
   let private behaviorsList connectionListeners (mailbox:Actor<IContext,Message>) =
-    let listeners = Router.NewBroadcastGroup(connectionListeners) |> spawnP
+    let listeners = Router.NewBroadcastGroup(connectionListeners) |> spawnProps
     let mutable handleSend = None
 
     let rec disconnected () =
@@ -55,4 +55,4 @@ module ConnectionActor =
 
     disconnected()
 
-  let create connectionListeners =  propsD <| behaviorsList connectionListeners
+  let create connectionListeners =  props <| behaviorsList connectionListeners

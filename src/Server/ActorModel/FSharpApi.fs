@@ -255,7 +255,7 @@ module ActorApi =
     /// Builds an actor message handler using an actor expression syntax.
     let actor = ActorBuilder()
 
-    let props (cfg:PropsConfig) (body:Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>) =
+    let propsWithConfig (cfg:PropsConfig) (body:Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>) =
         let mutable props =
                 Actor.FromProducer(
                   fun () -> FunActor(body, cfg) :> IActor
@@ -280,21 +280,28 @@ module ActorApi =
             .WithSenderMiddleware(cfg.SendMiddleware|>List.map toFuncSendMiddleware|>List.toArray)
         props
 
-    let propsD (body:Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>) = props zeroConfig body
+    let props (body:Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>) = propsWithConfig zeroConfig body
+
     let withMailbox (m:unit->IMailbox) (props:Props) = props.WithMailbox (fun ()->m())
     let withSupervisorStrategy s (props:Props) = props.WithChildSupervisorStrategy s
     let withReceiveMiddleware m (props:Props) = props.WithReceiveMiddleware(m|>List.map toFuncReceiveMiddleware|>List.toArray)
     let withSenderMiddleware m (props:Props) = props.WithSenderMiddleware(m|>List.map toFuncSendMiddleware|>List.toArray)
     let withDispatcher d (props:Props) = props.WithDispatcher d
     let withSpawner s (props:Props) = props.WithSpawner s
-    let spawnP props = props |> Actor.Spawn
-    let spawnNamed name props = Actor.SpawnNamed(props, name)
-    let spawnPrefix prefix props = Actor.SpawnPrefix(props, prefix)
-    let spawnFromContext (ctx:IContext) props = ctx.Spawn(props)
-    let spawnNamedFromContext name (ctx:IContext) props = ctx.SpawnNamed(props, name)
-    let spawnPrefixFromContext prefix (ctx:IContext) props = ctx.SpawnPrefix(props, prefix)
-    let spawn (body:Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>) = propsD body |> spawnP
-    let spawnWithConfig (cfg:PropsConfig) (body:Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>) = props cfg body |> spawnP
+
+    let spawnProps props = props |> Actor.Spawn
+    let spawn body = props body |> spawnProps
+    let spawnPropsNamed name props = Actor.SpawnNamed(props, name)
+    let spawnPropsPrefix prefix props = Actor.SpawnPrefix(props, prefix)
+    let spawnPropsFromContext (ctx:IContext) props = ctx.Spawn(props)
+    let spawnPropsNamedFromContext name (ctx:IContext) props = ctx.SpawnNamed(props, name)
+    let spawnPropsPrefixFromContext prefix (ctx:IContext) props = ctx.SpawnPrefix(props, prefix)
+    let spawnNamed name body = body |> props |> spawnPropsNamed name
+    let spawnPrefix prefix body = body |> props |> spawnPropsPrefix prefix
+    let spawnFromContext ctx body = body |> props |> spawnPropsFromContext ctx
+    let spawnNamedFromContext name ctx body = body |> props |> spawnPropsNamedFromContext name ctx
+    let spawnPrefixFromContext prefix ctx body = body |> props |> spawnPropsPrefixFromContext prefix ctx
+    let spawnWithConfig (cfg:PropsConfig) body = propsWithConfig cfg body |> spawnProps
 
     let actorOf (fn : IContext*'Message -> unit) (mailbox : Actor<IContext,'Message>) =
       let rec loop() =

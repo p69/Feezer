@@ -31,10 +31,10 @@ module Server =
          w.send Text data true |> Async.Ignore |> Async.Start
          ()
 
-      let authorizationActor = (AuthorizationActor.create config) |> spawnNamed AuthorizationActor.Name
+      let authorizationActor = (AuthorizationActor.create config) |> spawnPropsNamed AuthorizationActor.Name
 
-      let appRouter = RouterActor.create <| ConcurrentDictionary<Client,PID>(dict [(Client.Authozrize, authorizationActor)]) |> spawnP
-      let connectionActor = ConnectionActor.create [|authorizationActor|] |> spawnNamed ConnectionActor.Name
+      let appRouter = RouterActor.create <| ConcurrentDictionary<Client,PID>(dict [(Client.Authozrize, authorizationActor)]) |> spawnProps
+      let connectionActor = ConnectionActor.create [|authorizationActor|] |> spawnPropsNamed ConnectionActor.Name
       ClientKeeper.initBy connectionActor
 
       let ws (webSocket:WebSocket) (context:HttpContext) =

@@ -40,4 +40,4 @@ module HttpActor =
     }
     loop()
 
-  let createFromContext ctx = handler |> propsD |> spawnFromContext ctx
+  let createFromContext ctx = handler |> spawnFromContext ctx

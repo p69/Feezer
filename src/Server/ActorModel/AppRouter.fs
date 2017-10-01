@@ -20,4 +20,4 @@ module RouterActor =
         loop()
 
     let create (routeesMap:ConcurrentDictionary<Protocol.Client, PID>) =
-        Router.NewRoundRobinPool(router routeesMap |> propsD, 4)
+        Router.NewRoundRobinPool(router routeesMap |> props, 4)
