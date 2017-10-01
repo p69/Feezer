@@ -36,20 +36,20 @@ module AuthorizationActor =
         actor {
             let! (ctx, msg) = mailbox.Receive()
             match msg with
-            | Client clt -->
+            | Client clt ->
                 match clt with
-                | Protocol.Authozrize -->
+                | Protocol.Authozrize ->
                     let permissions = Authorization.Email <||> Authorization.Basic <||> Authorization.DeleteLibrary <||> Authorization.ManageLibrary <||> Authorization.OfflineAccess
                     let uri = Authorization.buildLoginUri config.DeezerAppId "http://localhost:8080/auth" permissions
                     ClientKeeper.sendMessage <| Protocol.Authorization(uri)
-            | AuthFlow af -->
+            | AuthFlow af ->
                 match af with
                 | CodeCallbackReceived code ->
                       let tokenUri = Authorization.buildTokenUri config.DeezerAppId config.DeezerAppSecret code
                       let httpActor = HttpActor.createFromContext ctx
                       httpActor <? (GET(tokenUri), ctx.Self)
-            | HttpResponse hr -->
-                match hr with -->
+            | HttpResponse hr ->
+                match hr with
                 | Success (_,result) ->
                       let result = fromJson result
                       let expiration =
@@ -60,7 +60,6 @@ module AuthorizationActor =
                       Api.setToken result.access_token
                       //TODO save token in DB
                 | _ -> () //TODO handle errors
-            | _ -> ()
             return! loop()
         }
     loop()

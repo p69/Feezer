@@ -204,13 +204,13 @@ module ActorApi =
             | Return _ -> g
 
 
-    type FunActor<'Message,'Returned>(actor : Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>, config:PropsConfig) as this =
+    type FunActor<'Message,'Returned>(actor : Actor<IContext,'Message> -> Cont<IContext*'Message, 'Returned>, config:PropsConfig) =
         let mutable state =
             actor { new Actor<IContext, 'Message> with
                         member __.Receive() = Input}
 
         let behavior = maybe {
-            let! behaviorsList = cfg.Behaviors
+            let! behaviorsList = config.Behaviors
             return Behavior()
           }
 
@@ -227,7 +227,7 @@ module ActorApi =
                   nativeBehavior.BecomeStacked(handler)
               unbecomeStacked=fun () -> nativeBehavior.UnbecomeStacked()
             }
-            let! configFunction = cfg.Behaviors
+            let! configFunction = config.Behaviors
             let behaviorsList = configFunction switcher
             behaviorToReceive <| behaviorsList.[0] |> nativeBehavior.Become
             return switcher
