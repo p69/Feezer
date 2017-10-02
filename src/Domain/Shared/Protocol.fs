@@ -2,11 +2,8 @@ namespace Feezer.Domain
 
 module Protocol =
     open System
+    open Feezer.Domain.User
 
-    type UserInfo = {
-        name:string;
-        avatar:Uri
-    }
 
     type TokenExpiration =
         | Never
@@ -15,7 +12,7 @@ module Protocol =
     type Server =
         | Authorization of url:string
         | Authorized of expiration:TokenExpiration
-        | UserInfo of UserInfo
+        | UserInfo of User
 
     type Client =
         | Authozrize

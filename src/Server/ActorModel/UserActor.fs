@@ -7,14 +7,25 @@ open Feezer.Domain
 open Feezer.Domain.User
 open Feezer.Server.ActorModel.Http
 open Feezer.Server.ActorModel.Connection
-open Chiron
 module Api = Feezer.Domain.DeezerApi
+open Feezer.Server.Utils
 
 type Message =
   | GetUserInfo
   | HttpResponse of Response
 
 module UserActor =
+
+  type JsonUser = {
+    id:int;
+    name:string;
+    picture_small:string;
+    picture_medium:string;
+    picture_big:string;
+    country:string;
+    lang:string;
+    tracklist:string;
+  }
 
   let handler (mailbox:Actor<IContext, Message>) =
     let mutable user:option<User> = None
@@ -23,7 +34,7 @@ module UserActor =
         match msg with
         | GetUserInfo ->
           match user with
-          | Some u -> ClientKeeper.sendMessage <| Protocol.Server.UserInfo({name=u.name; avatar=u.avatar})
+          | Some u -> ClientKeeper.sendMessage <| Protocol.Server.UserInfo(u)
           | None ->
               let httpActor = HttpActor.createFromContext ctx
               httpActor <! GET(Api.User.me)
@@ -32,12 +43,9 @@ module UserActor =
             match resp with
             | Success (uri, result) ->
                 if uri=Api.User.me then
-                  let userRes:JsonResult<User> = Chiron.Inference.Json.deserialize result
-                  match userRes with
-                  | JPass res ->
-                      user<-Some(res)
-                      ClientKeeper.sendMessage <| Protocol.Server.UserInfo({name=res.name; avatar=res.avatar})
-                  | JFail _ -> ()
+                  let parsedUser = fromJson<User> result
+                  user<-Some(parsedUser)
+                  ClientKeeper.sendMessage <| Protocol.Server.UserInfo(parsedUser)
             | Error _ -> ()
 
         return! loop()

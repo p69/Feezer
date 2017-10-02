@@ -1,7 +1,6 @@
 source https://www.nuget.org/api/v2
 redirects auto
 storage:none
-nuget Chiron 7.0.0-alpha-170410
 nuget FSharp.Core
 nuget FSharp.Control.FusionTasks.FS41
 
