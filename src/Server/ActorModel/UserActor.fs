@@ -10,13 +10,12 @@ open Feezer.Server.ActorModel.Connection
 module Api = Feezer.Domain.DeezerApi
 open Feezer.Server.Utils
 
-type Message =
+module UserActor =
+  type Message =
   | GetUserInfo
   | HttpResponse of Response
 
-module UserActor =
-
-  type JsonUser = {
+  type private JsonUser = {
     id:int;
     name:string;
     picture_small:string;
@@ -27,10 +26,11 @@ module UserActor =
     tracklist:string;
   }
 
-  let handler (mailbox:Actor<IContext, Message>) =
-    let mutable user:option<User> = None
-    let rec loop () = actor {
+  let private handler (mailbox:Actor<IContext, Message>) =
+
+    let rec loop (user:option<User>) = actor {
         let! (ctx,msg) = mailbox.Receive()
+
         match msg with
         | GetUserInfo ->
           match user with
@@ -44,12 +44,12 @@ module UserActor =
             | Success (uri, result) ->
                 if uri=Api.User.me then
                   let parsedUser = fromJson<User> result
-                  user<-Some(parsedUser)
                   ClientKeeper.sendMessage <| Protocol.Server.UserInfo(parsedUser)
+                  return! loop <| Some parsedUser
             | Error _ -> ()
 
-        return! loop()
+        return! loop user
       }
-    loop()
+    loop None
 
-  let create () = handler |> spawn
+  let create () = handler |> props

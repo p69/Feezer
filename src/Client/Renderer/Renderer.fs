@@ -1,6 +1,4 @@
-module Feezer.Client.Renderer
-
-
+module Feezer.Client.Renderer.App
 
 open Fable.Import.Browser
 open Fable.Core
@@ -9,49 +7,54 @@ open Feezer.Domain.Protocol
 open Feezer.Domain.User
 open Fable.Import
 open Fulma.Layouts
+open Fulma.Elements
 open System
-
+open Feezer.Client.Renderer
+open Fable.Helpers.React
 module E = Fable.Import.Electron
+open Elmish
+open Elmish.React
 
-let mutable private authPopup: E.BrowserWindow option = None
+type AuthorizedModel = {
+    user:User
+}
 
-let body = document.getElementById("app")
+type Msg =
+    | AnonymousMsg of Anonymous.Msg
 
-body.textContent <- "Hello Feezer!"
+type Model =
+    | Anonymous of Anonymous.Model
+    | Authorized of AuthorizedModel
 
-let user = {name="blasd";id=1;avatar="dsad"}
+let init ws = Anonymous(Anonymous.init ws)
 
-let onSocketConnected (ws:WebSocket) =
-    body.textContent <- "Socket connected"
-    ws.send <| toJson Authozrize
+let update msg model =
+    match msg,model with
+    | AnonymousMsg anonimMsg, Anonymous anonim -> Anonymous(Anonymous.update anonimMsg anonim)
+    | _,_ -> model
 
+let view model dispatch =
+    Container.container [Container.isFluid]
+        [div [] [
+                let page =
+                    match model with
+                    | Anonymous m -> Anonymous.view m dispatch
+                    | Authorized _-> div[][]
+                yield page
+            ]]
 
+let private onSocketConnected (ws:WebSocket) =
+    console.log("Socket connected")
+    let subscription model =
+        match model with
+        | Anonymous m -> Anonymous.subscription m
+        | _ -> Cmd.none
+    let inited() = init ws
+    Program.mkSimple inited update view
+    |> Program.withSubscription subscription
+    |> Program.withConsoleTrace
+    |> Program.withReact "app"
+    |> Program.run
 
-let onMessageReceived (evt:MessageEvent) =
-    let msg = ofJson<Server> !!evt.data
-    match msg with
-    | Authorization authUrl ->
-        let currentWindow = electron.remote.getCurrentWindow()
-        let options = createEmpty<E.BrowserWindowOptions>
-        options.parent <- Some currentWindow
-        options.modal <- Some true
-        let authWindow = electron.remote.BrowserWindow.Create(options)
-        authWindow.loadURL authUrl
-        authPopup <- Some authWindow
-    | Authorized expiration ->
-        match expiration with
-        | Never -> body.textContent <- "Token expiration: never"
-        | Date date -> body.textContent <- sprintf "Token expiration: %A" date
-
-        match authPopup with
-        | Some popUp -> popUp.close()
-        | None -> ()
-
-let ws = WebSocket.Create "ws://localhost:8080/fcon"
-
+let private ws = WebSocket.Create "ws://localhost:8080/fcon"
 ws.addEventListener_open (fun _ -> !!onSocketConnected(ws))
-
-ws.addEventListener_message !!onMessageReceived
-
-
-

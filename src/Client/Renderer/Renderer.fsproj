@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -7,7 +6,7 @@
     <ProjectReference Include="..\..\Domain\Domain.fsproj" />
   </ItemGroup>
   <ItemGroup>
-    <!-- <Compile Include="..\..\Domain\Shared\Protocol.fs" /> -->
+    <Compile Include="Anonymous.fs" />
     <Compile Include="Renderer.fs" />
   </ItemGroup>
   <Import Project="..\..\..\.paket\Paket.Restore.targets" />

@@ -31,7 +31,7 @@ module Server =
          w.send Text data true |> Async.Ignore |> Async.Start
          ()
 
-      let authorizationActor = (AuthorizationActor.create config) |> spawnPropsNamed AuthorizationActor.Name
+      let authorizationActor = (AuthorizationActor.create config) |> spawnPropsNamed<Message> AuthorizationActor.Name
 
       let appRouter = RouterActor.create <| ConcurrentDictionary<Client,PID>(dict [(Client.Authozrize, authorizationActor.Origin)]) |> spawnProps
       let connectionActor = ConnectionActor.create [|authorizationActor.Origin|] |> spawnPropsNamed ConnectionActor.Name
