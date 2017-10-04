@@ -1,4 +1,4 @@
-namespace Feezer.Server.ActorModel.Connection
+module Feezer.Server.ActorModel.ConnectionActor
 
 open Proto
 open Proto.Router
@@ -16,43 +16,48 @@ type ConnectionStatus =
   | Connected
   | Disconnected
 
-module ConnectionActor =
 
-  [<Literal>]
-  let Name = "socket"
 
-  let private behaviorsList connectionListeners (mailbox:Actor<IContext,Message>) =
-    let listeners = Router.NewBroadcastGroup(connectionListeners) |> spawnProps
-    let mutable handleSend = None
+[<Literal>]
+let Name = "socket"
 
-    let rec disconnected () =
-      actor {
-        let! (_,msg) = mailbox.Receive()
-        match msg with
-        | Connect handler ->
-            handleSend<-Some handler
-            listeners <! Connected
-            return! connected()
-        | _ -> return! disconnected()
-      }
+let mutable private currentConnection:option<TypedPID<Message>> = None
 
-    and connected () =
-      actor {
-        let! (_,msg) = mailbox.Receive()
-        match msg with
-        | Disconnect ->
-             handleSend<-None
-             listeners <! Disconnected
-             return! disconnected()
-        | SendMessage message ->
-             match handleSend with
-             | Some handler ->
-                 handler message
-                 return! connected()
-             | None -> return! disconnected() //TODO log handler is None become disconnected
-        | _ -> return! connected() //TODO: log
-      }
+let private behaviorsList connectionListeners (mailbox:Actor<IContext,Message>) =
 
-    disconnected()
+  let connectionListeners = Router.NewBroadcastGroup(connectionListeners) |> spawnProps<ConnectionStatus>
 
-  let create connectionListeners =  props <| behaviorsList connectionListeners
+  let rec disconnected (listeners:TypedPID<ConnectionStatus>) =
+    actor {
+      let! (_,msg) = mailbox.Receive()
+      match msg with
+      | Connect handler ->
+          listeners <! Connected
+          return! connected listeners handler
+      | _ -> return! disconnected listeners
+    }
+
+  and connected (listeners:TypedPID<ConnectionStatus>) (handleSend:HandleSendMessage) =
+    actor {
+      let! (_,msg) = mailbox.Receive()
+      match msg with
+      | Disconnect ->
+           listeners <! Disconnected
+           return! disconnected listeners
+      | SendMessage message ->
+           handleSend message
+           return! connected listeners handleSend
+      | _ -> return! connected listeners handleSend //TODO: log
+    }
+
+  disconnected connectionListeners
+
+let spawn connectionListeners =
+  let actor = behaviorsList connectionListeners |> spawnNamed Name
+  currentConnection<- Some(actor)
+  actor
+
+let sendMessage (msg:Protocol.Server) =
+    match currentConnection with
+    | Some actor -> actor <! SendMessage(msg)
+    | None -> () //log

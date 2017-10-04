@@ -47,7 +47,7 @@ let private onSocketConnected (ws:WebSocket) =
     console.log("Socket connected")
     let subscription model =
         match model with
-        | Anonymous m -> Anonymous.subscription m
+        | Anonymous m -> Cmd.map AnonymousMsg (Anonymous.subscription m)
         | _ -> Cmd.none
     let inited() = init ws
     Program.mkSimple inited update view

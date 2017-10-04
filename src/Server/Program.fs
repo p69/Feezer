@@ -16,10 +16,8 @@ module Server =
   open Suave.Sockets.Control
   open Feezer.Server.Utils
   open Proto
-  open Feezer.Server.ActorModel.Connection
+  open Feezer.Server.ActorModel
   open Feezer.Server.ActorModel.FSharpApi
-  open Feezer.Server.ActorModel.Authorization
-  open Feezer.Server.ActorModel.AppRouter
   open System.Collections.Concurrent
   open System.Text
 
@@ -31,14 +29,13 @@ module Server =
          w.send Text data true |> Async.Ignore |> Async.Start
          ()
 
-      let authorizationActor = (AuthorizationActor.create config) |> spawnPropsNamed<Message> AuthorizationActor.Name
+      let authorizationActor = (AuthorizationActor.create config) |> spawnPropsNamed<AuthorizationActor.Message> AuthorizationActor.Name
 
-      let appRouter = RouterActor.create <| ConcurrentDictionary<Client,PID>(dict [(Client.Authozrize, authorizationActor.Origin)]) |> spawnProps
-      let connectionActor = ConnectionActor.create [|authorizationActor.Origin|] |> spawnPropsNamed ConnectionActor.Name
-      ClientKeeper.initBy connectionActor.Origin
+      let wsRouter = WsRouterActor.choose <| [ (Client.Authozrize, (fun x->AuthorizationActor.Client(x)), authorizationActor) ] |> spawnProps
+      let connectionActor = ConnectionActor.spawn [|authorizationActor.Origin|]
 
       let ws (webSocket:WebSocket) (context:HttpContext) =
-        connectionActor <! Connect (send webSocket)
+        connectionActor <! ConnectionActor.Connect (send webSocket)
         socket {
           let mutable loop = true
           while loop do
@@ -50,9 +47,9 @@ module Server =
                 let evt = Logging.Message.eventX <| "Message received: " + strData
                 let clientMessage = fromJson<Client> strData
                 context.runtime.logger.log Logging.Info evt |> Async.Start
-                appRouter <! clientMessage
+                wsRouter <! clientMessage
             | (Close, _, _) ->
-                connectionActor <! Disconnect
+                connectionActor <! ConnectionActor.Disconnect
                 let emptyResponse = [||] |> ArraySegment
                 do! webSocket.send Close emptyResponse true
                 loop <- false
@@ -67,7 +64,7 @@ module Server =
                 match codeParam with
                  | Some (_,paramValue) ->
                        match paramValue with
-                        | Some code -> authorizationActor <! CodeCallbackReceived(code)
+                        | Some code -> authorizationActor <! (AuthorizationActor.AuthFlow <| AuthorizationActor.CodeCallbackReceived(code))
                         | None -> ()
                  | None -> ()
                 return! OK "" ctx

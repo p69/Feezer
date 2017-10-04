@@ -51,12 +51,14 @@ let private onWsMessageReveived (evt:MessageEvent) dispatch =
     console.log("message received")
     let msg = ofJson<Server> !!evt.data
     match msg with
-    | Server.Authorization authUrl -> dispatch Cmd.ofMsg <| ShowPopup(authUrl)
+    | Server.Authorization authUrl ->
+        let m = ShowPopup(authUrl)
+        dispatch m
     | Server.Authorized expiration ->
         match expiration with
         | Never -> console.log("Token expiration: never")
         | Date date -> console.log(sprintf "Token expiration: %A" date)
-        dispatch Cmd.ofMsg <| HidePopup
+        dispatch HidePopup
     | _ -> ()
 
 let subscription model =
@@ -66,7 +68,7 @@ let subscription model =
         model.ws.addEventListener_message (
               fun evt->
                 console.log("msg received")
-                !!obj
+                !! (onWsMessageReveived evt dispatch)
               )
     Cmd.ofSub sub
 
