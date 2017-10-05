@@ -8,6 +8,7 @@ open Fable.Helpers.React
 open Fable.Import.Browser
 open Fable.Core.JsInterop
 open Feezer.Domain.Protocol
+open Feezer.Domain.User
 open Fable.Import
 module E = Fable.Import.Electron
 
@@ -54,10 +55,10 @@ let private onWsMessageReveived (evt:MessageEvent) dispatch =
     | Server.Authorization authUrl ->
         let m = ShowPopup(authUrl)
         dispatch m
-    | Server.Authorized expiration ->
-        match expiration with
-        | Never -> console.log("Token expiration: never")
-        | Date date -> console.log(sprintf "Token expiration: %A" date)
+    | Server.CurrentUser user ->
+        match user with
+        | Anonymous -> console.log("Current user is anonymous")
+        | Authorized userInfo -> console.log(sprintf "Current user: %A" userInfo)
         dispatch HidePopup
     | _ -> ()
 
@@ -73,7 +74,7 @@ let subscription model =
     Cmd.ofSub sub
 
 let private loginClickHandler model dispatch =
-    model.ws.send <| toJson Authozrize
+    model.ws.send <| toJson Authorize
 
 let view model dispatch =
     match model.state with

@@ -11,8 +11,8 @@ module Protocol =
 
     type Server =
         | Authorization of url:string
-        | Authorized of expiration:TokenExpiration
-        | UserInfo of User
+        | CurrentUser of User
 
     type Client =
-        | Authozrize
+        | GetUser
+        | Authorize

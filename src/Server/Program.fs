@@ -29,10 +29,15 @@ module Server =
          w.send Text data true |> Async.Ignore |> Async.Start
          ()
 
-      let authorizationActor = (AuthorizationActor.create config) |> spawnPropsNamed<AuthorizationActor.Message> AuthorizationActor.Name
+      let userActor = (UserActor.create config) |> spawnProps<UserActor.Message>
 
-      let wsRouter = WsRouterActor.choose <| [ (Client.Authozrize, (fun x->AuthorizationActor.Client(x)), authorizationActor) ] |> spawnProps
-      let connectionActor = ConnectionActor.spawn [|authorizationActor.Origin|]
+      let wsRouter =
+          WsRouterActor.choose [
+              (Client.Authorize, (fun x->UserActor.Client(x)), userActor)
+              (Client.GetUser, (fun x->UserActor.Client(x)), userActor)
+          ] |> spawnProps
+
+      let connectionActor = ConnectionActor.spawn [|userActor.Origin|]
 
       let ws (webSocket:WebSocket) (context:HttpContext) =
         connectionActor <! ConnectionActor.Connect (send webSocket)
@@ -64,7 +69,7 @@ module Server =
                 match codeParam with
                  | Some (_,paramValue) ->
                        match paramValue with
-                        | Some code -> authorizationActor <! (AuthorizationActor.AuthFlow <| AuthorizationActor.CodeCallbackReceived(code))
+                        | Some code -> userActor <! (UserActor.AuthFlow <| UserActor.CodeCallbackReceived(code))
                         | None -> ()
                  | None -> ()
                 return! OK "" ctx
