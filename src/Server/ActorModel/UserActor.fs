@@ -12,7 +12,7 @@ type Message =
 | GetUserInfo
 | HttpResponse of HttpActor.Response
 
-type private JsonUser = {
+type JsonUser = {
   id:int;
   name:string;
   picture_small:string;

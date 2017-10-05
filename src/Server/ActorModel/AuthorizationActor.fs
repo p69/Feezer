@@ -16,13 +16,12 @@ type AuthFlow =
 type Message =
     | AuthFlow of AuthFlow
     | Client of Protocol.Client
-    | HttpResponse of HttpActor.Response
 
 
 [<Literal>]
 let Name = "auth"
 
-type private AuthorizationResult = {
+type AuthorizationResultJson = {
       access_token:string;
       expires:int
   }
@@ -41,23 +40,25 @@ let private handleReceive config (mailbox:Actor<IContext, Message>)=
           | AuthFlow af ->
               match af with
               | CodeCallbackReceived code ->
-                    let tokenUri = Authorization.buildTokenUri config.DeezerAppId config.DeezerAppSecret code
-                    let httpActor = HttpActor.createFromContext ctx
-                    httpActor <? (HttpActor.GET(tokenUri), ctx.Self)
-          | HttpResponse hr ->
-              match hr with
-              | HttpActor.Success (_,result) ->
-                    let result = fromJson result
-                    let expiration =
-                      match result.expires with
-                      | 0 -> Protocol.Never
-                      | seconds -> Protocol.Date(DateTime.Now.AddSeconds(seconds|>float))
-                    ConnectionActor.sendMessage <| Protocol.Authorized(expiration)
-                    Api.setToken result.access_token
-                    let userActor = UserActor.create() |> spawnPropsFromContext<UserActor.Message> ctx
-                    userActor <! UserActor.GetUserInfo
-                    //TODO save token in DB
-              | _ -> () //TODO handle errors
+                    async {
+                        let tokenUri = Authorization.buildTokenUri config.DeezerAppId config.DeezerAppSecret code
+                        let httpActor = HttpActor.createFromContext ctx
+                        let! hr = httpActor <?? HttpActor.GET(tokenUri)
+                        match hr with
+                        | HttpActor.Success (_,result) ->
+                            let result = fromJson result
+                            let expiration =
+                              match result.expires with
+                              | 0 -> Protocol.Never
+                              | seconds -> Protocol.Date(DateTime.Now.AddSeconds(seconds|>float))
+                            ConnectionActor.sendMessage <| Protocol.Authorized(expiration)
+                            Api.setToken result.access_token
+                            let userActor = UserActor.create() |> spawnPropsFromContext<UserActor.Message> ctx
+                            userActor <! UserActor.GetUserInfo
+                        //TODO save token in DB
+                        | _ -> () //TODO handle errors
+                    } |> Async.RunSynchronously |> ignore
+
           return! loop()
       }
   loop()
