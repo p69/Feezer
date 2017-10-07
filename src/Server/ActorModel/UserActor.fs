@@ -87,7 +87,7 @@ let private handler config (mailbox:Actor<IContext, Message>) =
                       | Anonymous ->
                           async {
                              let httpActor = HttpActor.createFromContext ctx
-                             let! httpResponse = httpActor <?? HttpActor.GET(Api.User.me)
+                             let! httpResponse = httpActor <?? HttpActor.GET(Api.User.me())
                              match httpResponse with
                              | HttpActor.Success (uri, userJson) ->
                                   let userInfo = fromJson<JsonUser> userJson

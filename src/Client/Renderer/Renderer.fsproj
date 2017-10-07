@@ -6,7 +6,8 @@
     <ProjectReference Include="..\..\Domain\Domain.fsproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Anonymous.fs" />
+    <Compile Include="main/Anonymous.fs" />
+    <Compile Include="main/Authorized.fs" />
     <Compile Include="Renderer.fs" />
   </ItemGroup>
   <Import Project="..\..\..\.paket\Paket.Restore.targets" />

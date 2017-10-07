@@ -6,9 +6,9 @@ module DeezerApi =
 
   let setToken token = accessToken <- token
 
-  let constructUriWithToken path = baseUri+path+"?access_token="+accessToken
+  let constructUriWithToken path = sprintf "%s%s?access_token=%s" baseUri path accessToken
 
   module User =
-    let private constrcutUserUri method = constructUriWithToken "user/"+method
-    let me = constrcutUserUri "me"
-    let flow = constrcutUserUri "flow"
+    let private constrcutUserUri method =  sprintf "user/%s" method |> constructUriWithToken
+    let me() = constrcutUserUri "me"
+    let flow() = constrcutUserUri "flow"

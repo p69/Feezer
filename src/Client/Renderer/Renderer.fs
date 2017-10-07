@@ -9,48 +9,83 @@ open Fable.Import
 open Fulma.Layouts
 open Fulma.Elements
 open System
-open Feezer.Client.Renderer
+open Feezer.Client.Renderer.Main
 open Fable.Helpers.React
 module E = Fable.Import.Electron
 open Elmish
 open Elmish.React
-
-type AuthorizedModel = {
-    user:User
-}
+open Fulma.Extensions
 
 type Msg =
+    | TryGetUser
+    | UserReceived of User
     | AnonymousMsg of Anonymous.Msg
+    | AuthorizedMsg of Authorized.Msg
 
-type Model =
+type MainModel =
+    | Loading
     | Anonymous of Anonymous.Model
-    | Authorized of AuthorizedModel
+    | Authorized of Authorized.Model
 
-let init ws = Anonymous(Anonymous.init ws)
+type Model = {
+    user:User;
+    ws:WebSocket;
+    main:MainModel
+}
 
-let update msg model =
-    match msg,model with
-    | AnonymousMsg anonimMsg, Anonymous anonim -> Anonymous(Anonymous.update anonimMsg anonim)
-    | _,_ -> model
+
+let init ws = {user=User.Anonymous; ws=ws; main=Loading}, Cmd.ofMsg TryGetUser
+
+let update msg model : Model*Cmd<Msg> =
+    match msg,model.main with
+    | TryGetUser, Loading ->
+        Client.GetUser |> toJson |> model.ws.send
+        model, Cmd.none
+    | AnonymousMsg subMsg, Anonymous subModel ->
+        let updatedAnonymous = Anonymous.update subMsg subModel
+        { model with main=MainModel.Anonymous(updatedAnonymous)}, Cmd.none
+    | AuthorizedMsg subMsg,Authorized subModel ->
+        let updated = Authorized.update subMsg subModel
+        {model with main=MainModel.Authorized(updated)}, Cmd.none
+    | UserReceived user, _ ->
+        match user with
+        | User.Anonymous ->
+            let (m, cmd) = Anonymous.init model.ws
+            {model with user=user; main=Anonymous(m)}, Cmd.map AnonymousMsg cmd
+        | User.Authorized info->
+            let m = Authorized.init info
+            {model with user=user; main=Authorized(m)}, Cmd.none
+    | _,_ -> model, Cmd.none
 
 let view model dispatch =
-    Container.container [Container.isFluid]
-        [div [] [
-                let page =
-                    match model with
-                    | Anonymous m -> Anonymous.view m dispatch
-                    | Authorized _-> div[][]
-                yield page
-            ]]
+    console.log("render")
+    Container.container [Container.isFluid] [
+        match model.main with
+        | Loading -> yield span [] [str "Loading..."]
+        | Anonymous m -> yield div [] [Anonymous.view m dispatch]
+        | Authorized m -> yield div [] [Authorized.view m]
+    ]
+
+let private onWsMessageReveived (evt:MessageEvent) dispatch =
+    let msg = ofJson<Server> !!evt.data
+    console.log("message received" ,msg)
+    match msg with
+    | Server.CurrentUser user ->
+        UserReceived user |> dispatch
+    | _ -> ()
+
+let subscription model =
+    let sub dispatch =
+        model.ws.addEventListener_message (
+              fun evt->
+                !! (onWsMessageReveived evt dispatch)
+              )
+    Cmd.ofSub sub
 
 let private onSocketConnected (ws:WebSocket) =
     console.log("Socket connected")
-    let subscription model =
-        match model with
-        | Anonymous m -> Cmd.map AnonymousMsg (Anonymous.subscription m)
-        | _ -> Cmd.none
     let inited() = init ws
-    Program.mkSimple inited update view
+    Program.mkProgram inited update view
     |> Program.withSubscription subscription
     |> Program.withConsoleTrace
     |> Program.withReact "app"
