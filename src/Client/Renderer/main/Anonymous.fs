@@ -11,6 +11,7 @@ open Feezer.Domain.Protocol
 open Feezer.Domain.User
 open Fable.Import
 module E = Fable.Import.Electron
+open Fulma.Layouts
 
 type Msg =
     | ShowPopup of url:string
@@ -77,8 +78,12 @@ let private loginClickHandler model dispatch =
     model.ws.send <| toJson Authorize
 
 let view model dispatch =
-    match model.state with
-    | InitialState -> Button.button [Button.isInfo
-                                     Button.onClick (fun _ -> loginClickHandler model dispatch)] [str "Login using Deezer"]
-    | Authorizing -> Button.button [Button.isInfo; Button.isLoading][]
-    | EndState -> Button.button [Button.isInfo; Button.isLoading][]
+    Column.column [Column.Width.Dekstop.isNarrow] [
+     yield
+      match model.state with
+        | InitialState -> Button.button [Button.isPrimary
+                                         Button.isFullWidth
+                                         Button.onClick (fun _ -> loginClickHandler model dispatch)] [str "Login using Deezer"]
+        | Authorizing -> Button.button [Button.isPrimary; Button.isFullWidth; Button.isLoading][]
+        | EndState -> Button.button [Button.isPrimary; Button.isFullWidth; Button.isDisabled][]
+    ]

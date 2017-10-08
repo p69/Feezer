@@ -59,11 +59,11 @@ let update msg model : Model*Cmd<Msg> =
 
 let view model dispatch =
     console.log("render")
-    Container.container [Container.isFluid] [
+    div [Props.ClassName "wrapper"] [
         match model.main with
         | Loading -> yield span [] [str "Loading..."]
-        | Anonymous m -> yield div [] [Anonymous.view m dispatch]
-        | Authorized m -> yield div [] [Authorized.view m]
+        | Anonymous m -> yield Anonymous.view m (AnonymousMsg >> dispatch)
+        | Authorized m -> yield! Authorized.view m (AuthorizedMsg >> dispatch)
     ]
 
 let private onWsMessageReveived (evt:MessageEvent) dispatch =

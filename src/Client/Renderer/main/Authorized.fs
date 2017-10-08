@@ -11,21 +11,26 @@ open Fable.Helpers
 open Feezer.Domain.Protocol
 open Feezer.Domain.User
 open Fable.Import
+open Feezer.Client.Renderer
+open Fulma.Layouts
 
 type Msg =
     | Logout
+    | MenuMsg of Menu.Msg
 
 type Model = {
-    user:UserInfo
+    user:UserInfo;
+    menu:Menu.Model
 }
 
-let init user = {user=user}
+let init user = {user=user; menu=Menu.init user}
 
 let update msg model=
     match msg with
-    | Logout -> ()//do logout
-    model
+    | Logout -> model//do logout
+    | MenuMsg subMsg -> {model with menu=Menu.update subMsg model.menu}
 
-let view model =
-    let name = "Hello, " + model.user.name
-    div [] [str name]
+let view model dispatch =
+        [ aside [Props.ClassName "aside is-fullheight is-hidden-mobile"; Props.Role "navigation" ] [yield! Menu.view model.menu (MenuMsg >> dispatch)]
+          section [Props.ClassName "main-content"] [str "Content"]
+        ]

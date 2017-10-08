@@ -7,6 +7,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="main/Anonymous.fs" />
+    <Compile Include="menu/Menu.fs" />
     <Compile Include="main/Authorized.fs" />
     <Compile Include="Renderer.fs" />
   </ItemGroup>

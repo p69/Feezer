@@ -3,11 +3,66 @@
     src: url(Roboto-Medium.ttf);
 }
 
-html {
+body {
   font-family: 'Roboto', sans-serif;
+  font-size: 12px;
+  padding: 0;
+  margin: 0
 }
 
-body {
-  font-size: 13px;
-  line-height: 20px;
+.wrapper {
+  display: flex;
+  height: 100vh;
+}
+
+.main-content {
+  flex: 1 1 auto;
+  padding: 20px;
+  overflow: auto;
+}
+
+.aside {
+  width: 220px;
+  background-color: #232B2D;
+
+}
+.aside .uploader {
+  background-color: #2EB398;
+  height: 95px;
+  margin:0 -10px;
+  padding: 25px 30px;
+}
+.aside .uploader .button {
+  background-color: transparent;
+  border: 3px dashed #F6F7F7;
+  padding: 20px 70px;
+  color: #F6F7F7;
+}
+.aside .menu .main {
+  padding: 0px;
+  color: #6F7B7E;
+}
+
+.aside .menu .title {
+  color: #6F7B7E;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+.aside .menu .main .item {
+  display: block;
+  padding: 5px 20px;
+  margin: 0;
+  color: #6F7B7E;
+}
+.aside .menu .main .item.is-active {
+  color: #F6F7F7;
+}
+.aside .menu .main .icon {
+  font-size: 19px;
+  padding-right: 30px;
+}
+.aside .menu .main .name {
+  font-size: 16px;
+  font-weight: bold;
 }
