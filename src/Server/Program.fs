@@ -25,16 +25,18 @@ module Server =
   let main argv =
       let config = Config.get()
       let send (w:WebSocket) msg =
-         let data = toJson <| msg |> Encoding.UTF8.GetBytes |> ArraySegment
+         let data = msg |> toJson |> Encoding.UTF8.GetBytes |> ArraySegment
          w.send Text data true |> Async.Ignore |> Async.Start
          ()
 
       let userActor = (UserActor.create config) |> spawnProps<UserActor.Message>
+      let flowActor = FlowActor.spawn()
 
       let wsRouter =
           WsRouterActor.choose [
               (Client.Authorize, (fun x->UserActor.Client(x)), userActor)
               (Client.GetUser, (fun x->UserActor.Client(x)), userActor)
+              (Client.LoadFlow, (fun _->FlowActor.GetUsersFlow), flowActor)
           ] |> spawnProps
 
       let connectionActor = ConnectionActor.spawn [|userActor.Origin|]

@@ -18,21 +18,7 @@ type Message =
   | Client of Protocol.Client
   | AuthFlow of AuthFlowMsg
 
-type AuthorizationResultJson = {
-      access_token:string;
-      expires:int
-  }
 
-type JsonUser = {
-  id:int;
-  name:string;
-  picture_small:string;
-  picture_medium:string;
-  picture_big:string;
-  country:string;
-  lang:string;
-  tracklist:string;
-}
 
 let private handler config (mailbox:Actor<IContext, Message>) =
 
@@ -59,7 +45,7 @@ let private handler config (mailbox:Actor<IContext, Message>) =
                   let! hr = httpActor <?? HttpActor.GET(tokenUri)
                   match hr with
                   | HttpActor.Success (_,result) ->
-                      let result = fromJson result
+                      let result = fromJson<Api.User.AuthorizationResultJson> result
                       let expiration =
                         match result.expires with
                         | 0 -> Protocol.Never
@@ -90,7 +76,7 @@ let private handler config (mailbox:Actor<IContext, Message>) =
                              let! httpResponse = httpActor <?? HttpActor.GET(Api.User.me())
                              match httpResponse with
                              | HttpActor.Success (uri, userJson) ->
-                                  let userInfo = fromJson<JsonUser> userJson
+                                  let userInfo = fromJson<Api.User.UserJson> userJson
                                   let currentUser = Authorized({id=1; name=userInfo.name; avatar=userInfo.picture_big})
                                   return currentUser
                              | HttpActor.Error _ -> return Anonymous

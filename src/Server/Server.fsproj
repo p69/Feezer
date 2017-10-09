@@ -15,6 +15,7 @@
     <Compile Include="ActorModel/AppRouter.fs" />
     <Compile Include="ActorModel/ConnectionActor.fs" />
     <Compile Include="ActorModel/UserActor.fs" />
+    <Compile Include="ActorModel/FlowActor.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
